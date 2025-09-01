@@ -5,8 +5,8 @@
 // === CONFIGURAZIONE DATABASE GOOGLE SHEETS ===
 // IMPORTANTE: Sostituisci questi valori dopo aver configurato Google Sheets
 const GOOGLE_SHEETS_CONFIG = {
-    SHEET_ID: 'YOUR_SHEET_ID_HERE', // Sostituisci con l'ID del tuo Google Sheet
-    API_KEY: 'YOUR_API_KEY_HERE',   // Sostituisci con la tua API Key di Google
+    SHEET_ID: '1sXpyc1dQer1B3srXuI0e9ZC26-N3l4Q-E63QBHp6mcs', // Sostituisci con l'ID del tuo Google Sheet
+    API_KEY: 'AIzaSyDtZdxZnqNBpvvDdFXhozIrbkrPngBzSgk',   // Sostituisci con la tua API Key di Google
     SHEET_NAME: 'Libri'             // Nome del foglio/tab
 };
 
@@ -935,4 +935,5 @@ function showAlert(message, type) {
     }, 5000);
     
     alert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
 }
