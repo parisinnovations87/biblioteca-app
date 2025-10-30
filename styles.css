@@ -780,3 +780,28 @@ body {
         min-height: 250px;
     }
 }
+
+/* Scanner Canvas Overlay */
+#scanner-viewport canvas.drawingBuffer {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#scanner-viewport video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Loading animation migliorata */
+.loading {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(102, 126, 234, 0.3);
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
