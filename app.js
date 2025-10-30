@@ -190,8 +190,12 @@ function showTab(tabName) {
 }
 
 // ========================================
-// SCANNER BARCODE - VERSIONE SEMPLIFICATA
+// SCANNER BARCODE CON ZXING
 // ========================================
+
+let codeReader = null;
+let selectedDeviceId = null;
+let scannerActive = false;
 
 function setupBarcodeScannerButton() {
     setTimeout(() => {
@@ -215,10 +219,10 @@ async function startScanner() {
         return;
     }
 
-    // Verifica supporto browser
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Il tuo browser non supporta l\'accesso alla fotocamera');
-        showAlert('Il tuo browser non supporta l\'accesso alla fotocamera', 'error');
+    // Verifica che ZXing sia caricato
+    if (typeof ZXing === 'undefined') {
+        showAlert('Libreria scanner non caricata. Ricarica la pagina.', 'error');
+        console.error('❌ ZXing non trovato');
         return;
     }
 
@@ -237,24 +241,21 @@ async function startScanner() {
         <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #e3f2fd); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
             <div class="scanner-status">
                 <p style="color: #667eea; font-weight: 600; font-size: 1.1rem; margin-bottom: 10px;">
-                    📷 Avvio fotocamera...
+                    📷 Inizializzazione scanner...
                 </p>
                 <p style="color: #666; font-size: 0.9rem;">
-                    Consenti l'accesso quando richiesto
+                    Attendere prego
                 </p>
                 <div class="loading"></div>
             </div>
             <div id="video-container" style="margin-top: 20px; position: relative; max-width: 100%; background: #000; border-radius: 12px; overflow: hidden; display: none;">
-                <video id="scanner-video" autoplay playsinline muted style="width: 100%; height: auto; display: block;"></video>
+                <video id="scanner-video" style="width: 100%; height: auto; display: block; border-radius: 12px;"></video>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; height: 140px; border: 3px solid #00ff00; border-radius: 8px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
                 <p style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; white-space: nowrap;">
-                    Inquadra il codice a barre
+                    🎯 Inquadra il codice a barre
                 </p>
             </div>
-            <div id="scanner-controls" style="margin-top: 20px; display: none; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button id="captureBtn" class="search-btn" style="min-width: 160px;">📸 Cattura</button>
-                <button id="closeBtn" class="stop-scanner-btn" style="min-width: 120px;">❌ Chiudi</button>
-            </div>
+            <button onclick="stopScanner()" class="stop-scanner-btn" style="margin-top: 20px;">❌ Chiudi Scanner</button>
         </div>
     `;
 
@@ -262,110 +263,110 @@ async function startScanner() {
         scanBtn.innerHTML = '⏹️ Stop';
     }
 
-    console.log('🎥 Richiedendo accesso fotocamera...');
-
     try {
-        const constraints = {
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        };
-
-        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('🎥 Inizializzazione ZXing...');
         
-        console.log('✅ Stream ottenuto');
+        // Crea il code reader
+        codeReader = new ZXing.BrowserMultiFormatReader();
         
-        const video = document.getElementById('scanner-video');
-        const videoContainer = document.getElementById('video-container');
-        const controls = document.getElementById('scanner-controls');
+        console.log('📹 Richiesta dispositivi video...');
         
-        if (!video) {
-            console.error('❌ Video element non trovato');
-            return;
+        // Ottieni lista dispositivi
+        const videoInputDevices = await codeReader.listVideoInputDevices();
+        
+        console.log('✅ Dispositivi trovati:', videoInputDevices.length);
+        
+        if (videoInputDevices.length === 0) {
+            throw new Error('Nessuna fotocamera trovata sul dispositivo');
         }
         
-        video.srcObject = videoStream;
+        // Scegli la fotocamera posteriore se disponibile
+        selectedDeviceId = videoInputDevices[0].deviceId;
         
-        video.onloadedmetadata = function() {
-            console.log('✅ Video metadata caricati');
-            video.play().then(() => {
-                console.log('✅ Video in riproduzione');
+        for (const device of videoInputDevices) {
+            console.log('📷 Device:', device.label, '| ID:', device.deviceId);
+            if (device.label.toLowerCase().includes('back') || 
+                device.label.toLowerCase().includes('rear') ||
+                device.label.toLowerCase().includes('environment')) {
+                selectedDeviceId = device.deviceId;
+                console.log('✅ Selezionata fotocamera posteriore');
+                break;
+            }
+        }
+        
+        const videoElement = document.getElementById('scanner-video');
+        const videoContainer = document.getElementById('video-container');
+        
+        if (!videoElement) {
+            throw new Error('Video element non trovato');
+        }
+        
+        console.log('▶️ Avvio decodifica continua...');
+        
+        // Mostra il video
+        videoContainer.style.display = 'block';
+        
+        const statusElement = document.querySelector('.scanner-status');
+        if (statusElement) {
+            statusElement.innerHTML = `
+                <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
+                    ✅ Scanner attivo
+                </p>
+                <p style="color: #666; font-size: 0.9rem;">
+                    Inquadra il codice nel riquadro verde
+                </p>
+            `;
+        }
+        
+        // Avvia la decodifica continua
+        codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+            if (result) {
+                const code = result.getText();
+                console.log('✅ CODICE RILEVATO:', code);
                 
-                // Mostra il video e i controlli
-                videoContainer.style.display = 'block';
-                controls.style.display = 'flex';
-                
-                scannerActive = true;
-                
-                const statusElement = document.querySelector('.scanner-status');
-                if (statusElement) {
-                    statusElement.innerHTML = `
-                        <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
-                            ✅ Fotocamera attiva
-                        </p>
-                    `;
+                if (code && code.length >= 8) {
+                    handleBarcodeDetected(code);
                 }
-                
-                // Configura i pulsanti
-                const captureBtn = document.getElementById('captureBtn');
-                const closeBtn = document.getElementById('closeBtn');
-                
-                if (captureBtn) {
-                    captureBtn.onclick = function(e) {
-                        e.preventDefault();
-                        captureAndDecode();
-                    };
-                }
-                
-                if (closeBtn) {
-                    closeBtn.onclick = function(e) {
-                        e.preventDefault();
-                        stopScanner();
-                    };
-                }
-                
-                console.log('✅ Scanner pronto');
-                
-            }).catch(err => {
-                console.error('❌ Errore play video:', err);
-            });
-        };
+            }
+            
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.error('⚠️ Errore decodifica:', err);
+            }
+        });
+        
+        scannerActive = true;
+        console.log('✅ Scanner ZXing avviato con successo');
 
     } catch (error) {
-        console.error('❌ Errore fotocamera:', error);
+        console.error('❌ Errore scanner:', error);
         
         let errorMsg = '';
         let instructions = '';
         
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        if (error.name === 'NotAllowedError' || error.message.includes('Permission')) {
             errorMsg = '🚫 Permesso fotocamera negato';
             instructions = `
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px; text-align: left;">
-                    <h4 style="color: #dc3545; margin-bottom: 15px;">Per abilitare la fotocamera:</h4>
+                    <h4 style="color: #dc3545; margin-bottom: 15px;">📱 Come risolvere:</h4>
                     
-                    <div style="margin-bottom: 15px;">
-                        <strong style="color: #667eea;">📱 Android/Mobile:</strong>
-                        <ol style="margin: 10px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
-                            <li>Tocca l'icona 🔒 nella barra indirizzi</li>
-                            <li>Tocca "Autorizzazioni" o "Permissions"</li>
-                            <li>Attiva "Fotocamera"</li>
-                            <li><strong>Ricarica completamente la pagina</strong></li>
-                        </ol>
-                    </div>
+                    <ol style="margin: 10px 0; padding-left: 20px; color: #666;">
+                        <li><strong>Tocca/Clicca l'icona 🔒</strong> nella barra degli indirizzi</li>
+                        <li>Trova <strong>"Fotocamera"</strong> o <strong>"Camera"</strong></li>
+                        <li>Seleziona <strong>"Consenti"</strong> o <strong>"Allow"</strong></li>
+                        <li><strong>RICARICA LA PAGINA</strong> completamente</li>
+                    </ol>
                     
-                    <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 15px;">
-                        <strong>💡 Alternativa:</strong> Inserisci manualmente il codice ISBN
+                    <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-top: 15px;">
+                        <strong>💡 Oppure:</strong> Prova in <strong>modalità incognito</strong> (nuova finestra privata)
                     </div>
                 </div>
             `;
-        } else if (error.name === 'NotFoundError') {
+        } else if (error.message.includes('Nessuna fotocamera')) {
             errorMsg = '📷 Nessuna fotocamera trovata';
-            instructions = `<p style="color: #666; margin-top: 15px;">Inserisci manualmente il codice ISBN nel campo sopra.</p>`;
+            instructions = `<p style="color: #666; margin-top: 15px;">Il tuo dispositivo non ha una fotocamera disponibile.</p>`;
         } else {
             errorMsg = '❌ Errore: ' + error.message;
-            instructions = `<p style="color: #666; margin-top: 15px;">Prova a ricaricare la pagina.</p>`;
+            instructions = `<p style="color: #666; margin-top: 15px;">Ricarica la pagina e riprova.</p>`;
         }
         
         scanner.innerHTML = `
@@ -385,51 +386,26 @@ async function startScanner() {
     }
 }
 
-function captureAndDecode() {
-    console.log('📸 Cattura immagine...');
+function handleBarcodeDetected(code) {
+    console.log('🎯 Gestione codice rilevato:', code);
     
-    const video = document.getElementById('scanner-video');
-    
-    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
-        console.error('❌ Video non pronto');
-        showAlert('Video non pronto, riprova tra un attimo', 'error');
+    if (!code || code.length < 8) {
+        console.log('❌ Codice non valido (troppo corto)');
         return;
     }
-
-    // Crea canvas temporaneo
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
     
-    const context = canvas.getContext('2d');
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Evita letture multiple dello stesso codice
+    if (document.getElementById('barcodeInput').value === code) {
+        console.log('⚠️ Codice già inserito, ignoro');
+        return;
+    }
     
-    console.log('✅ Immagine catturata, dimensioni:', canvas.width, 'x', canvas.height);
-    
-    // Mostra feedback visivo
-    showAlert('📸 Immagine catturata! Analisi in corso...', 'info');
-    
-    // Per ora, chiedi all'utente di inserire manualmente
-    // (Le API di riconoscimento barcode richiedono servizi esterni o sono sperimentali)
-    setTimeout(() => {
-        const manualCode = prompt('Inserisci manualmente il codice ISBN che vedi:');
-        if (manualCode && manualCode.length >= 8) {
-            handleBarcodeDetected(manualCode);
-        } else {
-            showAlert('Codice non valido o annullato', 'error');
-        }
-    }, 500);
-}
-
-function handleBarcodeDetected(code) {
-    console.log('✅ Codice rilevato:', code);
-    
-    if (!code || code.length < 8) return;
+    // Ferma lo scanner
+    stopScanner();
     
     playBeep();
     document.getElementById('barcodeInput').value = code;
-    stopScanner();
-    showAlert(`✅ Codice inserito: ${code}`, 'success');
+    showAlert(`✅ Codice rilevato: ${code}`, 'success');
     
     setTimeout(() => {
         searchByBarcode();
@@ -439,15 +415,18 @@ function handleBarcodeDetected(code) {
 function stopScanner() {
     console.log('⏹️ Fermando scanner...');
     
-    if (videoStream) {
-        videoStream.getTracks().forEach(track => {
-            track.stop();
-            console.log('✅ Track fermato:', track.kind);
-        });
-        videoStream = null;
+    if (codeReader) {
+        try {
+            codeReader.reset();
+            console.log('✅ Code reader resettato');
+        } catch (error) {
+            console.error('Errore reset code reader:', error);
+        }
+        codeReader = null;
     }
 
     scannerActive = false;
+    selectedDeviceId = null;
 
     const scanner = document.getElementById('scanner');
     if (scanner) {
@@ -484,6 +463,7 @@ function playBeep() {
         console.log('Audio non disponibile');
     }
 }
+
 
 // === RICERCA LIBRI ONLINE ===
 
