@@ -1,15 +1,15 @@
 // ========================================
 // BIBLIOTECA DOMESTICA - APP PRINCIPALE
 // Versione con Google OAuth 2.0 e Sheets API
-// Scanner aggiornato con html5-qrcode
+// Scanner con API native del browser
 // ========================================
 
 // Variabili globali
 let currentUser = null;
 let books = [];
-let html5QrCode = null;
+let videoStream = null;
 let scannerActive = false;
-let cameraStream = null;
+let scanInterval = null;
 let isEditMode = false;
 let editingBookId = null;
 
@@ -69,8 +69,6 @@ function checkExistingLogin() {
 // Login semplice (fallback)
 function simpleSignIn() {
     console.log('🔐 simpleSignIn chiamata');
-    console.log('Nome:', document.getElementById('userNameInput').value);
-    console.log('Email:', document.getElementById('userEmailInput').value);
     const userName = document.getElementById('userNameInput').value.trim();
     const userEmail = document.getElementById('userEmailInput').value.trim();
     
@@ -192,7 +190,7 @@ function showTab(tabName) {
 }
 
 // ========================================
-// SCANNER BARCODE CON HTML5-QRCODE
+// SCANNER BARCODE - VERSIONE NATIVA
 // ========================================
 
 function setupBarcodeScannerButton() {
@@ -204,7 +202,6 @@ function setupBarcodeScannerButton() {
     }, 1000);
 }
 
-
 async function startScanner() {
     if (scannerActive) {
         stopScanner();
@@ -214,172 +211,145 @@ async function startScanner() {
     // Verifica supporto browser
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         showAlert('Il tuo browser non supporta l\'accesso alla fotocamera', 'error');
-        showManualInputOption();
-        return;
-    }
-
-    if (typeof Html5Qrcode === 'undefined') {
-        showAlert('Libreria scanner non caricata. Ricarica la pagina.', 'error');
         return;
     }
 
     const scanner = document.getElementById('scanner');
     const scanBtn = document.querySelector('.scan-btn');
     
-    // Mostra interfaccia di caricamento
     scanner.style.display = 'block';
     scanner.innerHTML = `
         <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #e3f2fd); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
             <div class="scanner-status">
                 <p style="color: #667eea; font-weight: 600; font-size: 1.1rem; margin-bottom: 10px;">
-                    📷 Richiesta permesso fotocamera...
+                    📷 Avvio fotocamera...
                 </p>
-                <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">
-                    Il browser ti chiederà di consentire l'accesso alla fotocamera.<br>
-                    Clicca su "Consenti" o "Allow" quando richiesto.
+                <p style="color: #666; font-size: 0.9rem;">
+                    Consenti l'accesso quando richiesto
                 </p>
                 <div class="loading"></div>
             </div>
-            <div id="scanner-viewport" style="margin-top: 20px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none;"></div>
-            <div id="scan-result" style="margin-top: 15px; padding: 10px; background: white; border-radius: 8px; display: none;">
-                <p style="color: #28a745; font-weight: 500;"></p>
+            <div id="video-container" style="margin-top: 20px; position: relative; max-width: 100%; background: #000; border-radius: 12px; overflow: hidden; display: none;">
+                <video id="scanner-video" autoplay playsinline style="width: 100%; height: auto; display: block;"></video>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 300px; height: 150px; border: 3px solid #00ff00; border-radius: 8px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
             </div>
-            <div style="margin-top: 20px;">
-                <button onclick="stopScanner()" class="stop-scanner-btn">❌ Annulla</button>
+            <div id="scanner-controls" style="margin-top: 20px; display: none; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="captureAndDecode()" class="search-btn" style="min-width: 160px;">📸 Cattura Codice</button>
+                <button onclick="stopScanner()" class="stop-scanner-btn" style="min-width: 120px;">❌ Chiudi</button>
             </div>
+            <canvas id="scanner-canvas" style="display: none;"></canvas>
         </div>
     `;
 
     scanBtn.innerHTML = '⏹️ Stop Scanner';
-    
-    try {
-        // Inizializza lo scanner
-        html5QrCode = new Html5Qrcode("scanner-viewport");
-        
-        // Prova prima a ottenere la lista delle fotocamere disponibili
-        const devices = await Html5Qrcode.getCameras();
-        
-        if (!devices || devices.length === 0) {
-            throw new Error('Nessuna fotocamera trovata sul dispositivo');
-        }
 
-        console.log('📷 Fotocamere trovate:', devices.length);
-        
-        // Usa la fotocamera posteriore se disponibile, altrimenti la prima disponibile
-        let cameraId = devices[0].id;
-        
-        // Cerca fotocamera posteriore (environment)
-        const backCamera = devices.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('rear') ||
-            device.label.toLowerCase().includes('posteriore')
-        );
-        
-        if (backCamera) {
-            cameraId = backCamera.id;
-            console.log('✅ Usando fotocamera posteriore');
-        }
-        
-        // Mostra il viewport
-        document.getElementById('scanner-viewport').style.display = 'block';
-        
-        // Configurazione per la scansione
-        const config = {
-            fps: 10,
-            qrbox: { width: 250, height: 150 },
-            aspectRatio: 1.777778
+    try {
+        // Richiedi accesso alla fotocamera
+        const constraints = {
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
         };
 
-        // Avvia la fotocamera con l'ID specifico
-        await html5QrCode.start(
-            cameraId,
-            config,
-            onScanSuccess,
-            onScanError
-        );
-
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        const video = document.getElementById('scanner-video');
+        const videoContainer = document.getElementById('video-container');
+        const controls = document.getElementById('scanner-controls');
+        
+        video.srcObject = videoStream;
+        
+        await video.play();
+        
+        // Mostra il video e i controlli
+        videoContainer.style.display = 'block';
+        controls.style.display = 'flex';
+        
         scannerActive = true;
         
         const statusElement = document.querySelector('.scanner-status');
         if (statusElement) {
             statusElement.innerHTML = `
                 <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
-                    ✅ Scanner attivo
+                    ✅ Fotocamera attiva
                 </p>
                 <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
-                    Inquadra il codice a barre nel riquadro rosso
+                    Inquadra il codice a barre nel riquadro verde
                 </p>
             `;
         }
 
-        console.log('✅ Scanner avviato con successo');
+        console.log('✅ Fotocamera avviata con successo');
+        
+        // Avvia scansione automatica ogni 2 secondi
+        scanInterval = setInterval(captureAndDecode, 2000);
 
     } catch (error) {
-        console.error('❌ Errore avvio scanner:', error);
+        console.error('❌ Errore fotocamera:', error);
         
-        let errorMessage = '';
+        let errorMsg = 'Impossibile avviare la fotocamera. ';
         let instructions = '';
         
-        if (error.name === 'NotAllowedError' || error.message.includes('Permission') || error.message.includes('denied')) {
-            errorMessage = '🚫 Permesso fotocamera negato';
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            errorMsg = '🚫 Permesso fotocamera negato';
             instructions = `
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px; text-align: left;">
                     <h4 style="color: #dc3545; margin-bottom: 15px;">Come abilitare la fotocamera:</h4>
                     
                     <div style="margin-bottom: 15px;">
-                        <strong style="color: #667eea;">📱 Su Android (Chrome):</strong>
-                        <ol style="margin: 10px 0; padding-left: 20px; color: #666;">
-                            <li>Tocca l'icona del lucchetto 🔒 nella barra degli indirizzi</li>
-                            <li>Tocca "Autorizzazioni" o "Permissions"</li>
-                            <li>Trova "Fotocamera" e seleziona "Consenti"</li>
-                            <li>Ricarica la pagina e riprova</li>
-                        </ol>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong style="color: #667eea;">💻 Su Windows (Chrome):</strong>
-                        <ol style="margin: 10px 0; padding-left: 20px; color: #666;">
-                            <li>Clicca sull'icona della fotocamera ❌ nella barra degli indirizzi</li>
-                            <li>Seleziona "Consenti sempre per questo sito"</li>
+                        <strong style="color: #667eea;">📱 Su Android:</strong>
+                        <ol style="margin: 10px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
+                            <li>Tocca l'icona 🔒 nella barra degli indirizzi</li>
+                            <li>Tocca "Autorizzazioni"</li>
+                            <li>Attiva "Fotocamera"</li>
                             <li>Ricarica la pagina</li>
                         </ol>
                     </div>
                     
-                    <div style="background: #fff3cd; padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107;">
-                        <strong>💡 In alternativa:</strong><br>
-                        Puoi inserire manualmente il codice ISBN nel campo qui sotto
+                    <div style="margin-bottom: 15px;">
+                        <strong style="color: #667eea;">💻 Su Windows:</strong>
+                        <ol style="margin: 10px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
+                            <li>Clicca sull'icona ❌ nella barra degli indirizzi</li>
+                            <li>Seleziona "Consenti sempre"</li>
+                            <li>Ricarica la pagina (Ctrl+R)</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 15px;">
+                        <strong>💡 Alternativa:</strong> Puoi inserire manualmente il codice ISBN nel campo sopra
                     </div>
                 </div>
             `;
-        } else if (error.name === 'NotFoundError' || error.message.includes('No camera')) {
-            errorMessage = '📷 Nessuna fotocamera trovata';
+        } else if (error.name === 'NotFoundError') {
+            errorMsg = '📷 Nessuna fotocamera trovata';
             instructions = `
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
-                    <p style="color: #666; margin-bottom: 10px;">Il dispositivo non ha una fotocamera disponibile.</p>
-                    <p style="color: #666;">Puoi inserire manualmente il codice ISBN nel campo qui sotto.</p>
+                    <p style="color: #666;">Il dispositivo non ha una fotocamera disponibile.</p>
+                    <p style="color: #666; margin-top: 10px;">Puoi inserire manualmente il codice ISBN.</p>
                 </div>
             `;
         } else if (error.name === 'NotReadableError') {
-            errorMessage = '⚠️ Fotocamera già in uso';
+            errorMsg = '⚠️ Fotocamera già in uso';
             instructions = `
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
-                    <p style="color: #666; margin-bottom: 10px;">La fotocamera è già in uso da un'altra applicazione.</p>
-                    <p style="color: #666;">Chiudi le altre app che usano la fotocamera e riprova.</p>
+                    <p style="color: #666;">La fotocamera è già in uso da un'altra applicazione.</p>
+                    <p style="color: #666; margin-top: 10px;">Chiudi le altre app e riprova.</p>
                 </div>
             `;
         } else {
-            errorMessage = '❌ Errore scanner';
+            errorMsg = '❌ Errore scanner';
             instructions = `
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
-                    <p style="color: #666; margin-bottom: 10px;"><strong>Errore:</strong> ${error.message}</p>
-                    <p style="color: #666;">Puoi inserire manualmente il codice ISBN nel campo qui sotto.</p>
+                    <p style="color: #666;"><strong>Errore:</strong> ${error.message}</p>
                 </div>
             `;
         }
         
         scanner.innerHTML = `
             <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffebee, #ffcdd2); border-radius: 15px;">
-                <h3 style="color: #c62828; margin-bottom: 15px;">${errorMessage}</h3>
+                <h3 style="color: #c62828; margin-bottom: 15px;">${errorMsg}</h3>
                 ${instructions}
                 <div style="margin-top: 20px;">
                     <button onclick="stopScanner()" class="stop-scanner-btn">Chiudi</button>
@@ -388,74 +358,105 @@ async function startScanner() {
         `;
         
         scanBtn.innerHTML = '📷 Scansiona Codice';
-        scannerActive = false;
-        html5QrCode = null;
-    }
-}
-
-function showManualInputOption() {
-    const scanner = document.getElementById('scanner');
-    scanner.style.display = 'block';
-    scanner.innerHTML = `
-        <div style="text-align: center; padding: 30px; background: #e3f2fd; border-radius: 15px;">
-            <h3 style="color: #1976d2; margin-bottom: 15px;">📝 Inserimento Manuale</h3>
-            <p style="color: #666; margin-bottom: 20px;">
-                Lo scanner non è disponibile sul tuo browser.<br>
-                Inserisci manualmente il codice ISBN nel campo sopra.
-            </p>
-            <button onclick="stopScanner()" class="stop-scanner-btn">OK, Ho Capito</button>
-        </div>
-    `;
-}
-
-
-function onScanSuccess(decodedText, decodedResult) {
-    console.log('✅ Codice rilevato:', decodedText);
-    
-    // Valida che sia un ISBN/barcode valido (almeno 8 caratteri)
-    if (decodedText && decodedText.length >= 8) {
-        // Mostra feedback visivo
-        const resultDiv = document.getElementById('scan-result');
-        if (resultDiv) {
-            resultDiv.style.display = 'block';
-            resultDiv.querySelector('p').textContent = `✅ Codice rilevato: ${decodedText}`;
-        }
-        
-        // Riproduci suono
-        playBeep();
-        
-        // Inserisci il codice nel campo input
-        document.getElementById('barcodeInput').value = decodedText;
-        
-        // Ferma lo scanner
         stopScanner();
-        
-        // Mostra alert di successo
-        showAlert(`Codice rilevato: ${decodedText}`, 'success');
-        
-        // Avvia automaticamente la ricerca
-        setTimeout(() => {
-            searchByBarcode();
-        }, 800);
     }
 }
 
-function onScanError(errorMessage) {
-    // Ignora gli errori di scansione normali (quando non trova codici)
-    // Questi sono normali durante la scansione continua
-}
+async function captureAndDecode() {
+    if (!scannerActive) return;
 
-async function stopScanner() {
-    if (html5QrCode && scannerActive) {
+    const video = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    
+    if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Cattura il frame corrente
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Prova con BarcodeDetector API se disponibile
+    if ('BarcodeDetector' in window) {
         try {
-            await html5QrCode.stop();
-            html5QrCode.clear();
-            scannerActive = false;
-            console.log('✅ Scanner fermato');
+            const barcodeDetector = new BarcodeDetector({
+                formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+            });
+            
+            const barcodes = await barcodeDetector.detect(canvas);
+            
+            if (barcodes.length > 0) {
+                const code = barcodes[0].rawValue;
+                console.log('✅ Codice rilevato con BarcodeDetector:', code);
+                handleBarcodeDetected(code);
+                return;
+            }
         } catch (error) {
-            console.error('Errore durante lo stop dello scanner:', error);
+            console.log('BarcodeDetector non disponibile, provo con API esterna');
         }
     }
+    
+    // Fallback: usa API esterna per decodifica
+    canvas.toBlob(async (blob) => {
+        try {
+            const formData = new FormData();
+            formData.append('file', blob);
+            
+            const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result && result[0] && result[0].symbol && result[0].symbol[0]) {
+                const data = result[0].symbol[0].data;
+                if (data && data.length >= 8) {
+                    console.log('✅ Codice rilevato con API:', data);
+                    handleBarcodeDetected(data);
+                }
+            }
+        } catch (error) {
+            console.log('Scansione in corso...');
+        }
+    }, 'image/png');
+}
+
+function handleBarcodeDetected(code) {
+    if (!code || code.length < 8) return;
+    
+    // Ferma la scansione
+    if (scanInterval) {
+        clearInterval(scanInterval);
+        scanInterval = null;
+    }
+    
+    playBeep();
+    document.getElementById('barcodeInput').value = code;
+    stopScanner();
+    showAlert(`✅ Codice rilevato: ${code}`, 'success');
+    
+    setTimeout(() => {
+        searchByBarcode();
+    }, 800);
+}
+
+function stopScanner() {
+    if (scanInterval) {
+        clearInterval(scanInterval);
+        scanInterval = null;
+    }
+    
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => {
+            track.stop();
+            console.log('✅ Track fotocamera fermato');
+        });
+        videoStream = null;
+    }
+
+    scannerActive = false;
 
     const scanner = document.getElementById('scanner');
     if (scanner) {
@@ -468,7 +469,7 @@ async function stopScanner() {
         scanBtn.innerHTML = '📷 Scansiona Codice';
     }
 
-    html5QrCode = null;
+    console.log('✅ Scanner fermato completamente');
 }
 
 function playBeep() {
@@ -768,7 +769,6 @@ function searchBooks() {
     const query = document.getElementById('searchInput').value.toLowerCase();
     const genreFilter = document.getElementById('filterGenre').value;
     const shelfFilter = document.getElementById('filterShelf').value;
-    const searchResults = document.getElementById('searchResults');
     
     let filteredBooks = books;
     
