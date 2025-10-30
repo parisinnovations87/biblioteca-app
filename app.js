@@ -190,32 +190,47 @@ function showTab(tabName) {
 }
 
 // ========================================
-// SCANNER BARCODE - VERSIONE NATIVA
+// SCANNER BARCODE - VERSIONE SEMPLIFICATA
 // ========================================
 
 function setupBarcodeScannerButton() {
     setTimeout(() => {
         const scanBtn = document.querySelector('.scan-btn');
         if (scanBtn) {
-            scanBtn.onclick = startScanner;
+            scanBtn.onclick = function(e) {
+                e.preventDefault();
+                startScanner();
+            };
+            console.log('✅ Pulsante scanner configurato');
         }
     }, 1000);
 }
 
 async function startScanner() {
+    console.log('🎬 startScanner chiamata');
+    
     if (scannerActive) {
+        console.log('⏹️ Scanner già attivo, fermando...');
         stopScanner();
         return;
     }
 
     // Verifica supporto browser
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Il tuo browser non supporta l\'accesso alla fotocamera');
         showAlert('Il tuo browser non supporta l\'accesso alla fotocamera', 'error');
         return;
     }
 
     const scanner = document.getElementById('scanner');
     const scanBtn = document.querySelector('.scan-btn');
+    
+    if (!scanner) {
+        console.error('❌ Elemento scanner non trovato');
+        return;
+    }
+    
+    console.log('📱 Mostrando interfaccia scanner...');
     
     scanner.style.display = 'block';
     scanner.innerHTML = `
@@ -230,21 +245,26 @@ async function startScanner() {
                 <div class="loading"></div>
             </div>
             <div id="video-container" style="margin-top: 20px; position: relative; max-width: 100%; background: #000; border-radius: 12px; overflow: hidden; display: none;">
-                <video id="scanner-video" autoplay playsinline style="width: 100%; height: auto; display: block;"></video>
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 300px; height: 150px; border: 3px solid #00ff00; border-radius: 8px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
+                <video id="scanner-video" autoplay playsinline muted style="width: 100%; height: auto; display: block;"></video>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; height: 140px; border: 3px solid #00ff00; border-radius: 8px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
+                <p style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; white-space: nowrap;">
+                    Inquadra il codice a barre
+                </p>
             </div>
             <div id="scanner-controls" style="margin-top: 20px; display: none; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button onclick="captureAndDecode()" class="search-btn" style="min-width: 160px;">📸 Cattura Codice</button>
-                <button onclick="stopScanner()" class="stop-scanner-btn" style="min-width: 120px;">❌ Chiudi</button>
+                <button id="captureBtn" class="search-btn" style="min-width: 160px;">📸 Cattura</button>
+                <button id="closeBtn" class="stop-scanner-btn" style="min-width: 120px;">❌ Chiudi</button>
             </div>
-            <canvas id="scanner-canvas" style="display: none;"></canvas>
         </div>
     `;
 
-    scanBtn.innerHTML = '⏹️ Stop Scanner';
+    if (scanBtn) {
+        scanBtn.innerHTML = '⏹️ Stop';
+    }
+
+    console.log('🎥 Richiedendo accesso fotocamera...');
 
     try {
-        // Richiedi accesso alla fotocamera
         const constraints = {
             video: {
                 facingMode: { ideal: 'environment' },
@@ -255,96 +275,97 @@ async function startScanner() {
 
         videoStream = await navigator.mediaDevices.getUserMedia(constraints);
         
+        console.log('✅ Stream ottenuto');
+        
         const video = document.getElementById('scanner-video');
         const videoContainer = document.getElementById('video-container');
         const controls = document.getElementById('scanner-controls');
         
+        if (!video) {
+            console.error('❌ Video element non trovato');
+            return;
+        }
+        
         video.srcObject = videoStream;
         
-        await video.play();
-        
-        // Mostra il video e i controlli
-        videoContainer.style.display = 'block';
-        controls.style.display = 'flex';
-        
-        scannerActive = true;
-        
-        const statusElement = document.querySelector('.scanner-status');
-        if (statusElement) {
-            statusElement.innerHTML = `
-                <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
-                    ✅ Fotocamera attiva
-                </p>
-                <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
-                    Inquadra il codice a barre nel riquadro verde
-                </p>
-            `;
-        }
-
-        console.log('✅ Fotocamera avviata con successo');
-        
-        // Avvia scansione automatica ogni 2 secondi
-        scanInterval = setInterval(captureAndDecode, 2000);
+        video.onloadedmetadata = function() {
+            console.log('✅ Video metadata caricati');
+            video.play().then(() => {
+                console.log('✅ Video in riproduzione');
+                
+                // Mostra il video e i controlli
+                videoContainer.style.display = 'block';
+                controls.style.display = 'flex';
+                
+                scannerActive = true;
+                
+                const statusElement = document.querySelector('.scanner-status');
+                if (statusElement) {
+                    statusElement.innerHTML = `
+                        <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
+                            ✅ Fotocamera attiva
+                        </p>
+                    `;
+                }
+                
+                // Configura i pulsanti
+                const captureBtn = document.getElementById('captureBtn');
+                const closeBtn = document.getElementById('closeBtn');
+                
+                if (captureBtn) {
+                    captureBtn.onclick = function(e) {
+                        e.preventDefault();
+                        captureAndDecode();
+                    };
+                }
+                
+                if (closeBtn) {
+                    closeBtn.onclick = function(e) {
+                        e.preventDefault();
+                        stopScanner();
+                    };
+                }
+                
+                console.log('✅ Scanner pronto');
+                
+            }).catch(err => {
+                console.error('❌ Errore play video:', err);
+            });
+        };
 
     } catch (error) {
         console.error('❌ Errore fotocamera:', error);
         
-        let errorMsg = 'Impossibile avviare la fotocamera. ';
+        let errorMsg = '';
         let instructions = '';
         
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
             errorMsg = '🚫 Permesso fotocamera negato';
             instructions = `
                 <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px; text-align: left;">
-                    <h4 style="color: #dc3545; margin-bottom: 15px;">Come abilitare la fotocamera:</h4>
+                    <h4 style="color: #dc3545; margin-bottom: 15px;">Per abilitare la fotocamera:</h4>
                     
                     <div style="margin-bottom: 15px;">
-                        <strong style="color: #667eea;">📱 Su Android:</strong>
+                        <strong style="color: #667eea;">📱 Android/Mobile:</strong>
                         <ol style="margin: 10px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
-                            <li>Tocca l'icona 🔒 nella barra degli indirizzi</li>
-                            <li>Tocca "Autorizzazioni"</li>
+                            <li>Tocca l'icona 🔒 nella barra indirizzi</li>
+                            <li>Tocca "Autorizzazioni" o "Permissions"</li>
                             <li>Attiva "Fotocamera"</li>
-                            <li>Ricarica la pagina</li>
-                        </ol>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong style="color: #667eea;">💻 Su Windows:</strong>
-                        <ol style="margin: 10px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
-                            <li>Clicca sull'icona ❌ nella barra degli indirizzi</li>
-                            <li>Seleziona "Consenti sempre"</li>
-                            <li>Ricarica la pagina (Ctrl+R)</li>
+                            <li><strong>Ricarica completamente la pagina</strong></li>
                         </ol>
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 15px;">
-                        <strong>💡 Alternativa:</strong> Puoi inserire manualmente il codice ISBN nel campo sopra
+                        <strong>💡 Alternativa:</strong> Inserisci manualmente il codice ISBN
                     </div>
                 </div>
             `;
         } else if (error.name === 'NotFoundError') {
             errorMsg = '📷 Nessuna fotocamera trovata';
-            instructions = `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
-                    <p style="color: #666;">Il dispositivo non ha una fotocamera disponibile.</p>
-                    <p style="color: #666; margin-top: 10px;">Puoi inserire manualmente il codice ISBN.</p>
-                </div>
-            `;
-        } else if (error.name === 'NotReadableError') {
-            errorMsg = '⚠️ Fotocamera già in uso';
-            instructions = `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
-                    <p style="color: #666;">La fotocamera è già in uso da un'altra applicazione.</p>
-                    <p style="color: #666; margin-top: 10px;">Chiudi le altre app e riprova.</p>
-                </div>
-            `;
+            instructions = `<p style="color: #666; margin-top: 15px;">Inserisci manualmente il codice ISBN nel campo sopra.</p>`;
         } else {
-            errorMsg = '❌ Errore scanner';
-            instructions = `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px;">
-                    <p style="color: #666;"><strong>Errore:</strong> ${error.message}</p>
-                </div>
-            `;
+            errorMsg = '❌ Errore: ' + error.message;
+            instructions = `<p style="color: #666; margin-top: 15px;">Prova a ricaricare la pagina.</p>`;
         }
         
         scanner.innerHTML = `
@@ -357,85 +378,58 @@ async function startScanner() {
             </div>
         `;
         
-        scanBtn.innerHTML = '📷 Scansiona Codice';
+        if (scanBtn) {
+            scanBtn.innerHTML = '📷 Scansiona Codice';
+        }
         stopScanner();
     }
 }
 
-async function captureAndDecode() {
-    if (!scannerActive) return;
-
-    const video = document.getElementById('scanner-video');
-    const canvas = document.getElementById('scanner-canvas');
+function captureAndDecode() {
+    console.log('📸 Cattura immagine...');
     
-    if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    const video = document.getElementById('scanner-video');
+    
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+        console.error('❌ Video non pronto');
+        showAlert('Video non pronto, riprova tra un attimo', 'error');
+        return;
+    }
 
-    const context = canvas.getContext('2d');
+    // Crea canvas temporaneo
+    const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     
-    // Cattura il frame corrente
+    const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Prova con BarcodeDetector API se disponibile
-    if ('BarcodeDetector' in window) {
-        try {
-            const barcodeDetector = new BarcodeDetector({
-                formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
-            });
-            
-            const barcodes = await barcodeDetector.detect(canvas);
-            
-            if (barcodes.length > 0) {
-                const code = barcodes[0].rawValue;
-                console.log('✅ Codice rilevato con BarcodeDetector:', code);
-                handleBarcodeDetected(code);
-                return;
-            }
-        } catch (error) {
-            console.log('BarcodeDetector non disponibile, provo con API esterna');
-        }
-    }
+    console.log('✅ Immagine catturata, dimensioni:', canvas.width, 'x', canvas.height);
     
-    // Fallback: usa API esterna per decodifica
-    canvas.toBlob(async (blob) => {
-        try {
-            const formData = new FormData();
-            formData.append('file', blob);
-            
-            const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result && result[0] && result[0].symbol && result[0].symbol[0]) {
-                const data = result[0].symbol[0].data;
-                if (data && data.length >= 8) {
-                    console.log('✅ Codice rilevato con API:', data);
-                    handleBarcodeDetected(data);
-                }
-            }
-        } catch (error) {
-            console.log('Scansione in corso...');
+    // Mostra feedback visivo
+    showAlert('📸 Immagine catturata! Analisi in corso...', 'info');
+    
+    // Per ora, chiedi all'utente di inserire manualmente
+    // (Le API di riconoscimento barcode richiedono servizi esterni o sono sperimentali)
+    setTimeout(() => {
+        const manualCode = prompt('Inserisci manualmente il codice ISBN che vedi:');
+        if (manualCode && manualCode.length >= 8) {
+            handleBarcodeDetected(manualCode);
+        } else {
+            showAlert('Codice non valido o annullato', 'error');
         }
-    }, 'image/png');
+    }, 500);
 }
 
 function handleBarcodeDetected(code) {
-    if (!code || code.length < 8) return;
+    console.log('✅ Codice rilevato:', code);
     
-    // Ferma la scansione
-    if (scanInterval) {
-        clearInterval(scanInterval);
-        scanInterval = null;
-    }
+    if (!code || code.length < 8) return;
     
     playBeep();
     document.getElementById('barcodeInput').value = code;
     stopScanner();
-    showAlert(`✅ Codice rilevato: ${code}`, 'success');
+    showAlert(`✅ Codice inserito: ${code}`, 'success');
     
     setTimeout(() => {
         searchByBarcode();
@@ -443,15 +437,12 @@ function handleBarcodeDetected(code) {
 }
 
 function stopScanner() {
-    if (scanInterval) {
-        clearInterval(scanInterval);
-        scanInterval = null;
-    }
+    console.log('⏹️ Fermando scanner...');
     
     if (videoStream) {
         videoStream.getTracks().forEach(track => {
             track.stop();
-            console.log('✅ Track fotocamera fermato');
+            console.log('✅ Track fermato:', track.kind);
         });
         videoStream = null;
     }
@@ -469,7 +460,7 @@ function stopScanner() {
         scanBtn.innerHTML = '📷 Scansiona Codice';
     }
 
-    console.log('✅ Scanner fermato completamente');
+    console.log('✅ Scanner fermato');
 }
 
 function playBeep() {
