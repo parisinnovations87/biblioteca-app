@@ -219,39 +219,146 @@ async function startScanner() {
         return;
     }
 
-    // Verifica che ZXing sia caricato
-    if (typeof ZXing === 'undefined') {
-        showAlert('Libreria scanner non caricata. Ricarica la pagina.', 'error');
-        console.error('❌ ZXing non trovato');
-        return;
-    }
-
     const scanner = document.getElementById('scanner');
     const scanBtn = document.querySelector('.scan-btn');
     
-    if (!scanner) {
-        console.error('❌ Elemento scanner non trovato');
-        return;
-    }
-    
-    console.log('📱 Mostrando interfaccia scanner...');
-    
+    // Prima mostra un pulsante per richiedere i permessi
     scanner.style.display = 'block';
+    scanner.innerHTML = `
+        <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #f8f9ff, #e3f2fd); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <h3 style="color: #667eea; margin-bottom: 20px;">📷 Accesso Fotocamera</h3>
+            <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
+                Per usare lo scanner, devi consentire l'accesso alla fotocamera.<br>
+                Clicca sul pulsante qui sotto e poi seleziona <strong>"Consenti"</strong>.
+            </p>
+            <button id="requestPermissionBtn" style="
+                background: linear-gradient(45deg, #28a745, #20c997);
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 12px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                margin-bottom: 15px;
+            ">
+                🔓 Richiedi Permesso Fotocamera
+            </button>
+            <br>
+            <button onclick="stopScanner()" class="stop-scanner-btn" style="margin-top: 10px;">Annulla</button>
+            
+            <div id="permission-status" style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px; display: none;">
+                <p style="color: #666; margin: 0;"></p>
+            </div>
+        </div>
+    `;
+
+    // Aggiungi event listener al pulsante
+    const requestBtn = document.getElementById('requestPermissionBtn');
+    const statusDiv = document.getElementById('permission-status');
+    
+    requestBtn.onclick = async function() {
+        console.log('🔓 Richiesta permessi...');
+        
+        requestBtn.disabled = true;
+        requestBtn.innerHTML = '<div class="loading"></div> Attendere...';
+        requestBtn.style.opacity = '0.7';
+        
+        try {
+            // Richiedi esplicitamente i permessi
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } 
+            });
+            
+            console.log('✅ Permesso ottenuto!');
+            
+            // Ferma lo stream temporaneo
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Mostra messaggio di successo
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#d4edda';
+            statusDiv.querySelector('p').innerHTML = '✅ <strong>Permesso concesso!</strong> Avvio scanner...';
+            statusDiv.querySelector('p').style.color = '#155724';
+            
+            // Ora avvia lo scanner ZXing
+            setTimeout(() => {
+                initializeZXingScanner();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('❌ Permesso negato:', error);
+            
+            requestBtn.disabled = false;
+            requestBtn.innerHTML = '🔓 Riprova';
+            requestBtn.style.opacity = '1';
+            
+            let errorMsg = '';
+            let solution = '';
+            
+            if (error.name === 'NotAllowedError') {
+                errorMsg = '🚫 Permesso negato';
+                solution = `
+                    <strong style="color: #dc3545;">Il browser ha bloccato l'accesso.</strong><br><br>
+                    
+                    <div style="text-align: left; margin-top: 10px;">
+                        <strong>Su Android/Mobile:</strong><br>
+                        1. Tocca l'icona <strong>🔒</strong> o <strong>ⓘ</strong> nella barra indirizzi (in alto)<br>
+                        2. Tocca "Autorizzazioni" o "Impostazioni sito"<br>
+                        3. Cambia "Fotocamera" da <span style="color: red;">Blocca</span> a <span style="color: green;">Consenti</span><br>
+                        4. Ricarica la pagina (chiudi e riapri il tab)<br><br>
+                        
+                        <strong>Su PC/Desktop:</strong><br>
+                        1. Clicca l'icona <strong>🔒</strong> nella barra indirizzi<br>
+                        2. Clicca su "Fotocamera"<br>
+                        3. Seleziona "Consenti"<br>
+                        4. Ricarica con Ctrl+Shift+R
+                    </div>
+                `;
+            } else if (error.name === 'NotFoundError') {
+                errorMsg = '📷 Fotocamera non trovata';
+                solution = 'Il dispositivo non ha una fotocamera disponibile.';
+            } else {
+                errorMsg = '❌ Errore: ' + error.name;
+                solution = error.message;
+            }
+            
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#f8d7da';
+            statusDiv.querySelector('p').innerHTML = `
+                <strong>${errorMsg}</strong><br><br>
+                ${solution}
+            `;
+            statusDiv.querySelector('p').style.color = '#721c24';
+            statusDiv.querySelector('p').style.fontSize = '0.9rem';
+        }
+    };
+    
+    if (scanBtn) {
+        scanBtn.innerHTML = '⏹️ Chiudi';
+    }
+}
+
+async function initializeZXingScanner() {
+    const scanner = document.getElementById('scanner');
+    
     scanner.innerHTML = `
         <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #e3f2fd); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
             <div class="scanner-status">
                 <p style="color: #667eea; font-weight: 600; font-size: 1.1rem; margin-bottom: 10px;">
                     📷 Inizializzazione scanner...
                 </p>
-                <p style="color: #666; font-size: 0.9rem;">
-                    Attendere prego
-                </p>
                 <div class="loading"></div>
             </div>
             <div id="video-container" style="margin-top: 20px; position: relative; max-width: 100%; background: #000; border-radius: 12px; overflow: hidden; display: none;">
                 <video id="scanner-video" style="width: 100%; height: auto; display: block; border-radius: 12px;"></video>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; height: 140px; border: 3px solid #00ff00; border-radius: 8px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
-                <p style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; white-space: nowrap;">
+                <p style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem;">
                     🎯 Inquadra il codice a barre
                 </p>
             </div>
@@ -259,37 +366,33 @@ async function startScanner() {
         </div>
     `;
 
-    if (scanBtn) {
-        scanBtn.innerHTML = '⏹️ Stop';
-    }
-
     try {
+        // Verifica che ZXing sia caricato
+        if (typeof ZXing === 'undefined') {
+            throw new Error('Libreria ZXing non caricata. Ricarica la pagina.');
+        }
+
         console.log('🎥 Inizializzazione ZXing...');
         
-        // Crea il code reader
         codeReader = new ZXing.BrowserMultiFormatReader();
         
-        console.log('📹 Richiesta dispositivi video...');
-        
-        // Ottieni lista dispositivi
         const videoInputDevices = await codeReader.listVideoInputDevices();
         
         console.log('✅ Dispositivi trovati:', videoInputDevices.length);
         
         if (videoInputDevices.length === 0) {
-            throw new Error('Nessuna fotocamera trovata sul dispositivo');
+            throw new Error('Nessuna fotocamera trovata');
         }
         
-        // Scegli la fotocamera posteriore se disponibile
         selectedDeviceId = videoInputDevices[0].deviceId;
         
+        // Cerca fotocamera posteriore
         for (const device of videoInputDevices) {
-            console.log('📷 Device:', device.label, '| ID:', device.deviceId);
             if (device.label.toLowerCase().includes('back') || 
                 device.label.toLowerCase().includes('rear') ||
                 device.label.toLowerCase().includes('environment')) {
                 selectedDeviceId = device.deviceId;
-                console.log('✅ Selezionata fotocamera posteriore');
+                console.log('✅ Fotocamera posteriore selezionata');
                 break;
             }
         }
@@ -297,13 +400,6 @@ async function startScanner() {
         const videoElement = document.getElementById('scanner-video');
         const videoContainer = document.getElementById('video-container');
         
-        if (!videoElement) {
-            throw new Error('Video element non trovato');
-        }
-        
-        console.log('▶️ Avvio decodifica continua...');
-        
-        // Mostra il video
         videoContainer.style.display = 'block';
         
         const statusElement = document.querySelector('.scanner-status');
@@ -318,7 +414,7 @@ async function startScanner() {
             `;
         }
         
-        // Avvia la decodifica continua
+        // Avvia decodifica
         codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
             if (result) {
                 const code = result.getText();
@@ -335,53 +431,11 @@ async function startScanner() {
         });
         
         scannerActive = true;
-        console.log('✅ Scanner ZXing avviato con successo');
+        console.log('✅ Scanner ZXing avviato');
 
     } catch (error) {
-        console.error('❌ Errore scanner:', error);
-        
-        let errorMsg = '';
-        let instructions = '';
-        
-        if (error.name === 'NotAllowedError' || error.message.includes('Permission')) {
-            errorMsg = '🚫 Permesso fotocamera negato';
-            instructions = `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 15px; text-align: left;">
-                    <h4 style="color: #dc3545; margin-bottom: 15px;">📱 Come risolvere:</h4>
-                    
-                    <ol style="margin: 10px 0; padding-left: 20px; color: #666;">
-                        <li><strong>Tocca/Clicca l'icona 🔒</strong> nella barra degli indirizzi</li>
-                        <li>Trova <strong>"Fotocamera"</strong> o <strong>"Camera"</strong></li>
-                        <li>Seleziona <strong>"Consenti"</strong> o <strong>"Allow"</strong></li>
-                        <li><strong>RICARICA LA PAGINA</strong> completamente</li>
-                    </ol>
-                    
-                    <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-top: 15px;">
-                        <strong>💡 Oppure:</strong> Prova in <strong>modalità incognito</strong> (nuova finestra privata)
-                    </div>
-                </div>
-            `;
-        } else if (error.message.includes('Nessuna fotocamera')) {
-            errorMsg = '📷 Nessuna fotocamera trovata';
-            instructions = `<p style="color: #666; margin-top: 15px;">Il tuo dispositivo non ha una fotocamera disponibile.</p>`;
-        } else {
-            errorMsg = '❌ Errore: ' + error.message;
-            instructions = `<p style="color: #666; margin-top: 15px;">Ricarica la pagina e riprova.</p>`;
-        }
-        
-        scanner.innerHTML = `
-            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffebee, #ffcdd2); border-radius: 15px;">
-                <h3 style="color: #c62828; margin-bottom: 15px;">${errorMsg}</h3>
-                ${instructions}
-                <div style="margin-top: 20px;">
-                    <button onclick="stopScanner()" class="stop-scanner-btn">Chiudi</button>
-                </div>
-            </div>
-        `;
-        
-        if (scanBtn) {
-            scanBtn.innerHTML = '📷 Scansiona Codice';
-        }
+        console.error('❌ Errore inizializzazione:', error);
+        showAlert('Errore: ' + error.message, 'error');
         stopScanner();
     }
 }
