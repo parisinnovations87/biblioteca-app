@@ -748,3 +748,28 @@ body {
         padding: 12px;
     }
 }
+
+/* Istruzioni permessi fotocamera */
+.scanner-instructions {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    text-align: left;
+}
+
+.scanner-instructions h4 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.scanner-instructions ol {
+    margin: 10px 0;
+    padding-left: 25px;
+    color: #666;
+    line-height: 1.8;
+}
+
+.scanner-instructions li {
+    margin-bottom: 8px;
+}
