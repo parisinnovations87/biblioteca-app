@@ -238,13 +238,11 @@ function startScanner() {
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         showAlert('Il browser non supporta l\'accesso alla fotocamera', 'error');
-        showTestScanner();
         return;
     }
 
     if (typeof Quagga === 'undefined') {
-        console.warn('QuaggaJS non caricato correttamente');
-        showTestScanner();
+        showAlert('Scanner non disponibile. Libreria QuaggaJS non caricata.', 'error');
         return;
     }
 
@@ -258,17 +256,14 @@ function startScanner() {
                 <p>Inizializzazione fotocamera...</p>
                 <div class="loading"></div>
             </div>
-            <div id="scanner-viewport" style="margin-top: 15px; position: relative;"></div>
+            <div id="scanner-viewport" style="margin-top: 15px; position: relative; max-width: 100%; overflow: hidden; border-radius: 10px;"></div>
             <div style="margin-top: 15px;">
                 <button onclick="stopScanner()" class="stop-scanner-btn">Ferma Scanner</button>
-                <button onclick="showTestScanner()" style="background: #17a2b8; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; margin-left: 10px;">
-                    Usa Codici Test
-                </button>
             </div>
         </div>
     `;
 
-    scanBtn.innerHTML = 'Stop Scanner';
+    scanBtn.innerHTML = '⏹️ Stop Scanner';
     initializeQuaggaScanner();
 }
 
@@ -279,7 +274,8 @@ async function initializeQuaggaScanner() {
         Quagga.init(quaggaConfig, function(err) {
             if (err) {
                 console.error('Errore Quagga:', err);
-                showTestScanner();
+                showAlert('Errore nell\'inizializzazione dello scanner. Verifica i permessi della fotocamera.', 'error');
+                stopScanner();
                 return;
             }
 
@@ -287,7 +283,12 @@ async function initializeQuaggaScanner() {
             Quagga.start();
             
             document.querySelector('.scanner-status').innerHTML = `
-                <p style="color: #28a745; font-weight: 500;">Scanner attivo - Inquadra un codice a barre</p>
+                <p style="color: #28a745; font-weight: 500; font-size: 1.1rem;">
+                    📷 Scanner attivo - Inquadra un codice a barre
+                </p>
+                <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
+                    Mantieni il codice ben illuminato e fermo
+                </p>
             `;
 
             Quagga.onDetected(onBarcodeDetected);
@@ -295,7 +296,8 @@ async function initializeQuaggaScanner() {
 
     } catch (error) {
         console.error('Errore scanner:', error);
-        showTestScanner();
+        showAlert('Impossibile avviare lo scanner: ' + error.message, 'error');
+        stopScanner();
     }
 }
 
@@ -333,32 +335,6 @@ function stopScanner() {
     scanBtn.onclick = startScanner;
 
     isScanning = false;
-}
-
-function showTestScanner() {
-    const scanner = document.getElementById('scanner');
-    scanner.style.display = 'block';
-    scanner.innerHTML = `
-        <div style="text-align: center; padding: 30px; background: #e3f2fd; border-radius: 15px;">
-            <h3 style="color: #1976d2; margin-bottom: 20px;">Test Scanner Barcode</h3>
-            <p style="margin-bottom: 20px;">Clicca su un codice per testare la ricerca:</p>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
-                <button onclick="testBarcode('9788804639824')" class="test-barcode-btn">Libro Esempio 1</button>
-                <button onclick="testBarcode('9780142437172')" class="test-barcode-btn">Libro Esempio 2</button>
-                <button onclick="testBarcode('9788817050685')" class="test-barcode-btn">Libro Esempio 3</button>
-            </div>
-            <button onclick="stopScanner()" class="stop-scanner-btn">Chiudi Test</button>
-        </div>
-    `;
-}
-
-function testBarcode(code) {
-    document.getElementById('barcodeInput').value = code;
-    stopScanner();
-    showAlert(`Codice di test: ${code}`, 'success');
-    setTimeout(() => {
-        searchByBarcode();
-    }, 1000);
 }
 
 function playBeep() {
