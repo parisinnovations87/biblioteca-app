@@ -74,12 +74,14 @@
                 <h2>Aggiungi un nuovo libro</h2>
                 
                 <div class="barcode-section">
-                    <div class="barcode-input">
-                        <input type="text" id="barcodeInput" placeholder="Inserisci il codice a barre o ISBN">
-                    </div>
-                    <button class="scan-btn" onclick="startScanner()">📷 Scansiona</button>
-                    <button class="search-btn" onclick="searchByBarcode()">🔍 Cerca</button>
-                </div>
+   			<div class="barcode-input">
+        			<input type="text" id="barcodeInput" placeholder="Inserisci ISBN o Codice a Barre">
+    			</div>
+    			<div class="barcode-buttons">
+        			<button class="scan-btn" onclick="startScanner()">📷 Scansiona Codice</button>
+        			<button class="search-btn" onclick="searchByBarcode()">🔍 Cerca Libro</button>
+    			</div>
+		</div>
 
                 <div id="scanner"></div>
 
