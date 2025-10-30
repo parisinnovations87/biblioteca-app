@@ -1,12 +1,13 @@
 // ========================================
 // BIBLIOTECA DOMESTICA - APP PRINCIPALE
 // Versione con Google OAuth 2.0 e Sheets API
+// Scanner aggiornato con html5-qrcode
 // ========================================
 
 // Variabili globali
 let currentUser = null;
 let books = [];
-let isScanning = false;
+let html5QrCode = null;
 let scannerActive = false;
 let cameraStream = null;
 let isEditMode = false;
@@ -45,7 +46,7 @@ function checkExistingLogin() {
             if (currentUser.authMethod === 'google') {
                 const tokenExpiry = localStorage.getItem('google_token_expiry');
                 if (!tokenExpiry || Date.now() >= parseInt(tokenExpiry)) {
-                    console.log('🔑 Token Google scaduto');
+                    console.log('🔒 Token Google scaduto');
                     showAlert('Sessione Google scaduta. Accedi nuovamente.', 'info');
                     signOut();
                     return;
@@ -67,7 +68,7 @@ function checkExistingLogin() {
 
 // Login semplice (fallback)
 function simpleSignIn() {
-    console.log('🔍 simpleSignIn chiamata');
+    console.log('🔐 simpleSignIn chiamata');
     console.log('Nome:', document.getElementById('userNameInput').value);
     console.log('Email:', document.getElementById('userEmailInput').value);
     const userName = document.getElementById('userNameInput').value.trim();
@@ -190,36 +191,9 @@ function showTab(tabName) {
     }
 }
 
-// === SCANNER BARCODE ===
-
-const quaggaConfig = {
-    inputStream: {
-        name: "Live",
-        type: "LiveStream",
-        constraints: {
-            width: 640,
-            height: 480,
-            facingMode: "environment"
-        }
-    },
-    locator: {
-        patchSize: "medium",
-        halfSample: true
-    },
-    numOfWorkers: 2,
-    frequency: 10,
-    decoder: {
-        readers: [
-            "code_128_reader",
-            "ean_reader",
-            "ean_8_reader",
-            "code_39_reader",
-            "upc_reader",
-            "upc_e_reader"
-        ]
-    },
-    locate: true
-};
+// ========================================
+// SCANNER BARCODE CON HTML5-QRCODE
+// ========================================
 
 function setupBarcodeScannerButton() {
     setTimeout(() => {
@@ -242,209 +216,142 @@ async function startScanner() {
         return;
     }
 
-    if (typeof Quagga === 'undefined') {
+    if (typeof Html5Qrcode === 'undefined') {
         showAlert('Libreria scanner non caricata. Ricarica la pagina.', 'error');
         return;
     }
 
-    // Richiedi prima i permessi della fotocamera
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
-        });
-        
-        // Permesso ottenuto, ferma lo stream temporaneo
-        stream.getTracks().forEach(track => track.stop());
-        
-        // Ora inizializza lo scanner
-        const scanner = document.getElementById('scanner');
-        const scanBtn = document.querySelector('.scan-btn');
-        
-        scanner.style.display = 'block';
-        scanner.innerHTML = `
-            <div style="text-align: center; padding: 20px; background: #f8f9ff; border-radius: 15px;">
-                <div class="scanner-status">
-                    <p style="color: #667eea; font-weight: 500;">Inizializzazione scanner...</p>
-                    <div class="loading"></div>
-                </div>
-                <div id="scanner-viewport" style="margin-top: 15px; position: relative; max-width: 100%; overflow: hidden; border-radius: 10px; background: #000; min-height: 300px;"></div>
-                <div style="margin-top: 15px;">
-                    <button onclick="stopScanner()" class="stop-scanner-btn">⏹️ Ferma Scanner</button>
-                </div>
-            </div>
-        `;
-
-        scanBtn.innerHTML = '⏹️ Stop Scanner';
-        
-        // Avvia Quagga dopo un breve delay per permettere al DOM di aggiornarsi
-        setTimeout(() => {
-            initializeQuaggaScanner();
-        }, 100);
-        
-    } catch (error) {
-        console.error('Errore permessi fotocamera:', error);
-        
-        let errorMessage = 'Impossibile accedere alla fotocamera. ';
-        
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-            errorMessage += 'Permesso negato. Abilita i permessi della fotocamera nelle impostazioni del browser.';
-        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-            errorMessage += 'Nessuna fotocamera trovata sul dispositivo.';
-        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-            errorMessage += 'La fotocamera è già in uso da un\'altra applicazione.';
-        } else {
-            errorMessage += 'Errore: ' + error.message;
-        }
-        
-        showAlert(errorMessage, 'error');
-    }
-}
-
-function initializeQuaggaScanner() {
-    const viewport = document.querySelector('#scanner-viewport');
+    const scanner = document.getElementById('scanner');
+    const scanBtn = document.querySelector('.scan-btn');
     
-    if (!viewport) {
-        console.error('Scanner viewport non trovato');
-        return;
-    }
+    scanner.style.display = 'block';
+    scanner.innerHTML = `
+        <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9ff, #e3f2fd); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <div class="scanner-status">
+                <p style="color: #667eea; font-weight: 600; font-size: 1.1rem; margin-bottom: 10px;">
+                    📷 Inizializzazione fotocamera...
+                </p>
+                <div class="loading"></div>
+            </div>
+            <div id="scanner-viewport" style="margin-top: 20px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"></div>
+            <div id="scan-result" style="margin-top: 15px; padding: 10px; background: white; border-radius: 8px; display: none;">
+                <p style="color: #28a745; font-weight: 500;"></p>
+            </div>
+            <div style="margin-top: 20px;">
+                <button onclick="stopScanner()" class="stop-scanner-btn">⏹️ Ferma Scanner</button>
+            </div>
+        </div>
+    `;
 
-    const config = {
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: viewport,
-            constraints: {
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-                facingMode: "environment",
-                aspectRatio: { min: 1, max: 2 }
-            }
-        },
-        locator: {
-            patchSize: "medium",
-            halfSample: true
-        },
-        numOfWorkers: navigator.hardwareConcurrency || 4,
-        decoder: {
-            readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "code_128_reader",
-                "code_39_reader",
-                "upc_reader",
-                "upc_e_reader"
-            ],
-            multiple: false
-        },
-        locate: true,
-        frequency: 10
-    };
+    scanBtn.innerHTML = '⏹️ Stop Scanner';
+    
+    try {
+        // Inizializza lo scanner
+        html5QrCode = new Html5Qrcode("scanner-viewport");
+        
+        // Configurazione per la scansione
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 150 },
+            aspectRatio: 1.777778,
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39
+            ]
+        };
 
-    Quagga.init(config, function(err) {
-        if (err) {
-            console.error('Errore inizializzazione Quagga:', err);
-            showAlert('Errore nell\'avvio dello scanner. Riprova.', 'error');
-            stopScanner();
-            return;
-        }
+        // Avvia la fotocamera
+        await html5QrCode.start(
+            { facingMode: "environment" }, // Usa fotocamera posteriore
+            config,
+            onScanSuccess,
+            onScanError
+        );
 
-        console.log('✅ Scanner Quagga inizializzato');
         scannerActive = true;
-        Quagga.start();
         
         const statusElement = document.querySelector('.scanner-status');
         if (statusElement) {
             statusElement.innerHTML = `
-                <p style="color: #28a745; font-weight: 500; font-size: 1.1rem;">
-                    📷 Scanner attivo
+                <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
+                    ✅ Scanner attivo
                 </p>
                 <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
-                    Inquadra il codice a barre mantenendolo ben illuminato
+                    Inquadra il codice a barre nel riquadro verde
                 </p>
             `;
         }
 
-        // Gestione rilevamento codice
-        Quagga.onDetected(onBarcodeDetected);
+        console.log('✅ Scanner avviato con successo');
+
+    } catch (error) {
+        console.error('❌ Errore avvio scanner:', error);
         
-        // Feedback visivo durante la scansione
-        Quagga.onProcessed(function(result) {
-            const drawingCtx = Quagga.canvas.ctx.overlay;
-            const drawingCanvas = Quagga.canvas.dom.overlay;
-
-            if (result) {
-                if (result.boxes) {
-                    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                    
-                    // Disegna i box rilevati
-                    result.boxes.filter(box => box !== result.box).forEach(box => {
-                        Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
-                            color: "green",
-                            lineWidth: 2
-                        });
-                    });
-                }
-
-                // Disegna il box principale se trovato
-                if (result.box) {
-                    Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, {
-                        color: "#00F",
-                        lineWidth: 2
-                    });
-                }
-
-                // Disegna la linea del codice se rilevato
-                if (result.codeResult && result.codeResult.code) {
-                    Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, {
-                        color: 'red',
-                        lineWidth: 3
-                    });
-                }
-            }
-        });
-    });
+        let errorMessage = 'Impossibile avviare lo scanner. ';
+        
+        if (error.toString().includes('NotAllowedError') || error.toString().includes('Permission')) {
+            errorMessage += 'Permesso fotocamera negato. Vai nelle impostazioni del browser e abilita i permessi per la fotocamera.';
+        } else if (error.toString().includes('NotFoundError') || error.toString().includes('NotReadableError')) {
+            errorMessage += 'Fotocamera non disponibile o già in uso.';
+        } else {
+            errorMessage += error.message || 'Errore sconosciuto.';
+        }
+        
+        showAlert(errorMessage, 'error');
+        stopScanner();
+    }
 }
 
-function onBarcodeDetected(result) {
-    if (!result || !result.codeResult) return;
+function onScanSuccess(decodedText, decodedResult) {
+    console.log('✅ Codice rilevato:', decodedText);
     
-    const code = result.codeResult.code;
-    
-    // Valida che il codice sia valido (almeno 8 caratteri)
-    if (code && code.length >= 8) {
+    // Valida che sia un ISBN/barcode valido (almeno 8 caratteri)
+    if (decodedText && decodedText.length >= 8) {
+        // Mostra feedback visivo
+        const resultDiv = document.getElementById('scan-result');
+        if (resultDiv) {
+            resultDiv.style.display = 'block';
+            resultDiv.querySelector('p').textContent = `✅ Codice rilevato: ${decodedText}`;
+        }
+        
+        // Riproduci suono
         playBeep();
         
-        console.log('✅ Codice rilevato:', code);
-        document.getElementById('barcodeInput').value = code;
+        // Inserisci il codice nel campo input
+        document.getElementById('barcodeInput').value = decodedText;
         
         // Ferma lo scanner
         stopScanner();
         
-        showAlert(`Codice rilevato: ${code}`, 'success');
+        // Mostra alert di successo
+        showAlert(`Codice rilevato: ${decodedText}`, 'success');
         
-        // Avvia automaticamente la ricerca dopo 500ms
+        // Avvia automaticamente la ricerca
         setTimeout(() => {
             searchByBarcode();
-        }, 500);
+        }, 800);
     }
 }
 
-function stopScanner() {
-    if (scannerActive) {
+function onScanError(errorMessage) {
+    // Ignora gli errori di scansione normali (quando non trova codici)
+    // Questi sono normali durante la scansione continua
+}
+
+async function stopScanner() {
+    if (html5QrCode && scannerActive) {
         try {
-            Quagga.stop();
-            Quagga.offDetected(onBarcodeDetected);
-            Quagga.offProcessed();
+            await html5QrCode.stop();
+            html5QrCode.clear();
             scannerActive = false;
             console.log('✅ Scanner fermato');
         } catch (error) {
             console.error('Errore durante lo stop dello scanner:', error);
         }
-    }
-
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
     }
 
     const scanner = document.getElementById('scanner');
@@ -458,7 +365,7 @@ function stopScanner() {
         scanBtn.innerHTML = '📷 Scansiona Codice';
     }
 
-    isScanning = false;
+    html5QrCode = null;
 }
 
 function playBeep() {
