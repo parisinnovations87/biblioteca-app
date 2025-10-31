@@ -1,15 +1,15 @@
 // ========================================
 // BIBLIOTECA DOMESTICA - APP PRINCIPALE
 // Versione con Google OAuth 2.0 e Sheets API
-// Scanner con API native del browser
+// Scanner con ZXing + Fix login Android
 // ========================================
 
 // Variabili globali
 let currentUser = null;
 let books = [];
-let videoStream = null;
+let codeReader = null;
+let selectedDeviceId = null;
 let scannerActive = false;
-let scanInterval = null;
 let isEditMode = false;
 let editingBookId = null;
 
@@ -29,7 +29,7 @@ function initializeApp() {
     initializeSearchFilters();
     
     // Mostra configurazione in sviluppo
-    if (DEV_MODE) {
+    if (typeof DEV_MODE !== 'undefined' && DEV_MODE) {
         console.log('🔧 Modalità sviluppo attiva');
         showConfigurationStatus();
     }
@@ -51,7 +51,9 @@ function checkExistingLogin() {
                     signOut();
                     return;
                 }
-                accessToken = localStorage.getItem('google_access_token');
+                if (typeof accessToken !== 'undefined') {
+                    accessToken = localStorage.getItem('google_access_token');
+                }
             }
             
             showApp();
@@ -116,7 +118,7 @@ function signOut() {
     }
     
     // Logout specifico per metodo di autenticazione
-    if (currentUser && currentUser.authMethod === 'google') {
+    if (currentUser && currentUser.authMethod === 'google' && typeof signOutGoogle === 'function') {
         signOutGoogle();
     }
     
@@ -128,7 +130,9 @@ function signOut() {
     hideApp();
     clearForm();
     clearLoginForm();
-    hideFallbackLogin();
+    if (typeof hideFallbackLogin === 'function') {
+        hideFallbackLogin();
+    }
     
     showAlert('Logout effettuato con successo', 'info');
 }
@@ -169,6 +173,34 @@ function hideApp() {
     document.getElementById('appSection').classList.add('hidden');
 }
 
+function setSyncStatus(status, message) {
+    const syncStatus = document.getElementById('syncStatus');
+    if (!syncStatus) return;
+
+    const icons = {
+        'loading': '🔄',
+        'success': '✅',
+        'error': '❌',
+        'offline': '📱'
+    };
+
+    const colors = {
+        'loading': '#ffc107',
+        'success': '#28a745',
+        'error': '#dc3545',
+        'offline': '#6c757d'
+    };
+
+    syncStatus.innerHTML = `${icons[status]} ${message}`;
+    syncStatus.style.color = colors[status];
+
+    if (status === 'loading') {
+        syncStatus.classList.add('pulse');
+    } else {
+        syncStatus.classList.remove('pulse');
+    }
+}
+
 // === GESTIONE TAB ===
 
 function showTab(tabName) {
@@ -192,10 +224,6 @@ function showTab(tabName) {
 // ========================================
 // SCANNER BARCODE CON ZXING
 // ========================================
-
-let codeReader = null;
-let selectedDeviceId = null;
-let scannerActive = false;
 
 function setupBarcodeScannerButton() {
     setTimeout(() => {
@@ -518,7 +546,6 @@ function playBeep() {
     }
 }
 
-
 // === RICERCA LIBRI ONLINE ===
 
 async function searchByBarcode() {
@@ -648,7 +675,7 @@ async function addBook() {
             books[bookIndex] = bookData;
             
             // Salva su Google Sheets se disponibile
-            if (currentUser.authMethod === 'google') {
+            if (currentUser.authMethod === 'google' && typeof updateBookInGoogleSheets === 'function') {
                 await updateBookInGoogleSheets(bookData);
             }
             
@@ -660,7 +687,7 @@ async function addBook() {
         books.push(bookData);
         
         // Salva su Google Sheets se disponibile
-        if (currentUser.authMethod === 'google') {
+        if (currentUser.authMethod === 'google' && typeof saveBookToGoogleSheets === 'function') {
             await saveBookToGoogleSheets(bookData);
         }
         
@@ -712,7 +739,7 @@ async function deleteBook(bookId) {
         books = books.filter(b => b.id !== bookId);
         
         // Elimina da Google Sheets se disponibile
-        if (currentUser.authMethod === 'google') {
+        if (currentUser.authMethod === 'google' && typeof deleteBookFromGoogleSheets === 'function') {
             await deleteBookFromGoogleSheets(bookId);
         }
         
@@ -880,8 +907,12 @@ function sortBooks() {
 // === GESTIONE DATI ===
 
 function loadBooks() {
-    if (currentUser.authMethod === 'google' && isConfigurationValid()) {
-        loadBooksFromGoogleSheets();
+    if (currentUser.authMethod === 'google' && typeof isConfigurationValid === 'function' && isConfigurationValid()) {
+        if (typeof loadBooksFromGoogleSheets === 'function') {
+            loadBooksFromGoogleSheets();
+        } else {
+            loadBooksFromLocalStorage();
+        }
     } else {
         loadBooksFromLocalStorage();
     }
@@ -903,6 +934,25 @@ function loadBooksFromLocalStorage() {
 function saveBooks() {
     if (currentUser) {
         localStorage.setItem('libraryBooks_' + currentUser.id, JSON.stringify(books));
+    }
+}
+
+// === SINCRONIZZAZIONE MANUALE ===
+
+async function manualSync() {
+    if (typeof syncInProgress !== 'undefined' && syncInProgress) {
+        showAlert('Sincronizzazione già in corso...', 'info');
+        return;
+    }
+
+    if (!currentUser || currentUser.authMethod !== 'google') {
+        showAlert('Sincronizzazione disponibile solo con account Google', 'info');
+        return;
+    }
+
+    showAlert('Sincronizzazione in corso...', 'info');
+    if (typeof loadBooksFromGoogleSheets === 'function') {
+        await loadBooksFromGoogleSheets();
     }
 }
 
@@ -984,8 +1034,11 @@ function showAlert(message, type) {
 // === CONFIGURAZIONE STATUS ===
 
 function showConfigurationStatus() {
-    console.log('🔧 Status Configurazione:');
-    console.log(`- Google Client ID: ${isConfigurationValid() ? '✅ Configurato' : '❌ Mancante'}`);
-    console.log(`- Google Sheet ID: ${SHEETS_CONFIG.SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID_HERE' ? '✅ Configurato' : '❌ Mancante'}`);
-    console.log(`- Ambiente: ${DEV_MODE ? 'Sviluppo' : 'Produzione'}`);
+    if (typeof isConfigurationValid !== 'undefined' && typeof SHEETS_CONFIG !== 'undefined') {
+        console.log('🔧 Status Configurazione:');
+        console.log(`- Google Client ID: ${isConfigurationValid() ? '✅ Configurato' : '❌ Mancante'}`);
+        console.log(`- Google Sheet ID: ${SHEETS_CONFIG.SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID_HERE' ? '✅ Configurato' : '❌ Mancante'}`);
+        console.log(`- Ambiente: ${typeof DEV_MODE !== 'undefined' && DEV_MODE ? 'Sviluppo' : 'Produzione'}`);
+    }
 }
+
