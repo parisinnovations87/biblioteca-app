@@ -222,7 +222,8 @@ function showTab(tabName) {
 }
 
 // ========================================
-// SCANNER BARCODE CON ZXING
+// SCANNER BARCODE CON QUAGGA
+// Sostituisci la sezione scanner in app.js con questo codice
 // ========================================
 
 function setupBarcodeScannerButton() {
@@ -242,7 +243,7 @@ async function startScanner() {
     console.log('🎬 startScanner chiamata');
     
     if (scannerActive) {
-        console.log('⏹️ Scanner già attivo, fermando...');
+        console.log('ℹ️ Scanner già attivo, fermando...');
         stopScanner();
         return;
     }
@@ -250,14 +251,14 @@ async function startScanner() {
     const scanner = document.getElementById('scanner');
     const scanBtn = document.querySelector('.scan-btn');
     
-    // Prima mostra un pulsante per richiedere i permessi
+    // Mostra interfaccia richiesta permessi
     scanner.style.display = 'block';
     scanner.innerHTML = `
         <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #f8f9ff, #e3f2fd); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
             <h3 style="color: #667eea; margin-bottom: 20px;">📷 Accesso Fotocamera</h3>
             <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
                 Per usare lo scanner, devi consentire l'accesso alla fotocamera.<br>
-                Clicca sul pulsante qui sotto e poi seleziona <strong>"Consenti"</strong>.
+                Clicca sul pulsante e seleziona <strong>"Consenti"</strong>.
             </p>
             <button id="requestPermissionBtn" style="
                 background: linear-gradient(45deg, #28a745, #20c997);
@@ -282,7 +283,6 @@ async function startScanner() {
         </div>
     `;
 
-    // Aggiungi event listener al pulsante
     const requestBtn = document.getElementById('requestPermissionBtn');
     const statusDiv = document.getElementById('permission-status');
     
@@ -294,7 +294,7 @@ async function startScanner() {
         requestBtn.style.opacity = '0.7';
         
         try {
-            // Richiedi esplicitamente i permessi
+            // Test permessi
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     facingMode: 'environment',
@@ -304,19 +304,15 @@ async function startScanner() {
             });
             
             console.log('✅ Permesso ottenuto!');
-            
-            // Ferma lo stream temporaneo
             stream.getTracks().forEach(track => track.stop());
             
-            // Mostra messaggio di successo
             statusDiv.style.display = 'block';
             statusDiv.style.background = '#d4edda';
             statusDiv.querySelector('p').innerHTML = '✅ <strong>Permesso concesso!</strong> Avvio scanner...';
             statusDiv.querySelector('p').style.color = '#155724';
             
-            // Ora avvia lo scanner ZXing
             setTimeout(() => {
-                initializeZXingScanner();
+                initializeQuaggaScanner();
             }, 1000);
             
         } catch (error) {
@@ -336,10 +332,10 @@ async function startScanner() {
                     
                     <div style="text-align: left; margin-top: 10px;">
                         <strong>Su Android/Mobile:</strong><br>
-                        1. Tocca l'icona <strong>🔒</strong> o <strong>ⓘ</strong> nella barra indirizzi (in alto)<br>
+                        1. Tocca l'icona <strong>🔒</strong> nella barra indirizzi<br>
                         2. Tocca "Autorizzazioni" o "Impostazioni sito"<br>
-                        3. Cambia "Fotocamera" da <span style="color: red;">Blocca</span> a <span style="color: green;">Consenti</span><br>
-                        4. Ricarica la pagina (chiudi e riapri il tab)<br><br>
+                        3. Cambia "Fotocamera" da Blocca a Consenti<br>
+                        4. Ricarica la pagina<br><br>
                         
                         <strong>Su PC/Desktop:</strong><br>
                         1. Clicca l'icona <strong>🔒</strong> nella barra indirizzi<br>
@@ -368,11 +364,11 @@ async function startScanner() {
     };
     
     if (scanBtn) {
-        scanBtn.innerHTML = '⏹️ Chiudi';
+        scanBtn.innerHTML = 'ⓘ Chiudi';
     }
 }
 
-async function initializeZXingScanner() {
+async function initializeQuaggaScanner() {
     const scanner = document.getElementById('scanner');
     
     scanner.innerHTML = `
@@ -383,11 +379,13 @@ async function initializeZXingScanner() {
                 </p>
                 <div class="loading"></div>
             </div>
-            <div id="video-container" style="margin-top: 20px; position: relative; max-width: 100%; background: #000; border-radius: 12px; overflow: hidden; display: none;">
-                <video id="scanner-video" style="width: 100%; height: auto; display: block; border-radius: 12px;"></video>
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; height: 140px; border: 3px solid #00ff00; border-radius: 8px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);"></div>
-                <p style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem;">
-                    🎯 Inquadra il codice a barre
+            <div id="scanner-container" style="margin-top: 20px; display: none;">
+                <div id="interactive" class="viewport" style="position: relative; width: 100%; max-width: 640px; margin: 0 auto; background: #000; border-radius: 12px; overflow: hidden;">
+                    <video style="width: 100%; height: auto; display: block;"></video>
+                    <canvas class="drawingBuffer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                </div>
+                <p style="margin-top: 15px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 20px; display: inline-block;">
+                    🎯 Inquadra il codice a barre nel riquadro
                 </p>
             </div>
             <button onclick="stopScanner()" class="stop-scanner-btn" style="margin-top: 20px;">❌ Chiudi Scanner</button>
@@ -395,71 +393,133 @@ async function initializeZXingScanner() {
     `;
 
     try {
-        // Verifica che ZXing sia caricato
-        if (typeof ZXing === 'undefined') {
-            throw new Error('Libreria ZXing non caricata. Ricarica la pagina.');
+        // Verifica che Quagga sia caricato
+        if (typeof Quagga === 'undefined') {
+            throw new Error('Libreria Quagga non caricata. Ricarica la pagina.');
         }
 
-        console.log('🎥 Inizializzazione ZXing...');
+        console.log('🎥 Inizializzazione Quagga...');
         
-        codeReader = new ZXing.BrowserMultiFormatReader();
-        
-        const videoInputDevices = await codeReader.listVideoInputDevices();
-        
-        console.log('✅ Dispositivi trovati:', videoInputDevices.length);
-        
-        if (videoInputDevices.length === 0) {
-            throw new Error('Nessuna fotocamera trovata');
-        }
-        
-        selectedDeviceId = videoInputDevices[0].deviceId;
-        
-        // Cerca fotocamera posteriore
-        for (const device of videoInputDevices) {
-            if (device.label.toLowerCase().includes('back') || 
-                device.label.toLowerCase().includes('rear') ||
-                device.label.toLowerCase().includes('environment')) {
-                selectedDeviceId = device.deviceId;
-                console.log('✅ Fotocamera posteriore selezionata');
-                break;
-            }
-        }
-        
-        const videoElement = document.getElementById('scanner-video');
-        const videoContainer = document.getElementById('video-container');
-        
-        videoContainer.style.display = 'block';
-        
-        const statusElement = document.querySelector('.scanner-status');
-        if (statusElement) {
-            statusElement.innerHTML = `
-                <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
-                    ✅ Scanner attivo
-                </p>
-                <p style="color: #666; font-size: 0.9rem;">
-                    Inquadra il codice nel riquadro verde
-                </p>
-            `;
-        }
-        
-        // Avvia decodifica
-        codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
-            if (result) {
-                const code = result.getText();
-                console.log('✅ CODICE RILEVATO:', code);
-                
-                if (code && code.length >= 8) {
-                    handleBarcodeDetected(code);
+        const config = {
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#interactive'),
+                constraints: {
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 },
+                    facingMode: "environment",
+                    aspectRatio: { min: 1, max: 2 }
+                },
+                area: { // Area di scansione ridotta per migliori performance
+                    top: "25%",
+                    right: "10%",
+                    left: "10%",
+                    bottom: "25%"
                 }
+            },
+            locator: {
+                patchSize: "medium",
+                halfSample: true
+            },
+            numOfWorkers: navigator.hardwareConcurrency || 4,
+            frequency: 10,
+            decoder: {
+                readers: [
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_128_reader",
+                    "code_39_reader",
+                    "upc_reader",
+                    "upc_e_reader"
+                ],
+                multiple: false
+            },
+            locate: true
+        };
+
+        Quagga.init(config, function(err) {
+            if (err) {
+                console.error('❌ Errore inizializzazione Quagga:', err);
+                showAlert('Errore: ' + err.message, 'error');
+                stopScanner();
+                return;
             }
             
-            if (err && !(err instanceof ZXing.NotFoundException)) {
-                console.error('⚠️ Errore decodifica:', err);
+            console.log('✅ Quagga inizializzato');
+            
+            // Mostra il container dello scanner
+            document.getElementById('scanner-container').style.display = 'block';
+            
+            const statusElement = document.querySelector('.scanner-status');
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <p style="color: #28a745; font-weight: 600; font-size: 1.1rem;">
+                        ✅ Scanner attivo
+                    </p>
+                    <p style="color: #666; font-size: 0.9rem;">
+                        Inquadra il codice a barre
+                    </p>
+                `;
+            }
+            
+            // Avvia lo scanner
+            Quagga.start();
+            scannerActive = true;
+            
+            console.log('✅ Scanner Quagga avviato');
+        });
+
+        // Gestisce la rilevazione del codice
+        Quagga.onDetected(function(result) {
+            if (result && result.codeResult && result.codeResult.code) {
+                const code = result.codeResult.code;
+                
+                // Verifica validità del codice
+                if (code && code.length >= 8 && /^[0-9]+$/.test(code)) {
+                    console.log('✅ CODICE RILEVATO:', code);
+                    handleBarcodeDetected(code);
+                } else {
+                    console.log('⚠️ Codice non valido ignorato:', code);
+                }
             }
         });
-        
-        scannerActive = true;
-        console.log('✅ Scanner ZXing avviato');
+
+        // Debug: mostra i tentativi di lettura (opzionale)
+        Quagga.onProcessed(function(result) {
+            const drawingCtx = Quagga.canvas.ctx.overlay;
+            const drawingCanvas = Quagga.canvas.dom.overlay;
+
+            if (result) {
+                // Disegna i box di rilevamento
+                if (result.boxes) {
+                    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    
+                    result.boxes.filter(box => box !== result.box).forEach(box => {
+                        Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {
+                            color: "yellow",
+                            lineWidth: 2
+                        });
+                    });
+                }
+
+                // Disegna il box principale se trovato
+                if (result.box) {
+                    Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {
+                        color: "lime",
+                        lineWidth: 3
+                    });
+                }
+
+                // Disegna la linea del codice
+                if (result.codeResult && result.codeResult.code) {
+                    Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {
+                        color: 'red',
+                        lineWidth: 3
+                    });
+                }
+            }
+        });
 
     } catch (error) {
         console.error('❌ Errore inizializzazione:', error);
@@ -485,30 +545,30 @@ function handleBarcodeDetected(code) {
     // Ferma lo scanner
     stopScanner();
     
+    // Feedback sonoro e visivo
     playBeep();
     document.getElementById('barcodeInput').value = code;
     showAlert(`✅ Codice rilevato: ${code}`, 'success');
     
+    // Avvia la ricerca automatica
     setTimeout(() => {
         searchByBarcode();
     }, 800);
 }
 
 function stopScanner() {
-    console.log('⏹️ Fermando scanner...');
+    console.log('ℹ️ Fermando scanner...');
     
-    if (codeReader) {
+    if (typeof Quagga !== 'undefined' && scannerActive) {
         try {
-            codeReader.reset();
-            console.log('✅ Code reader resettato');
+            Quagga.stop();
+            console.log('✅ Quagga fermato');
         } catch (error) {
-            console.error('Errore reset code reader:', error);
+            console.error('Errore stop Quagga:', error);
         }
-        codeReader = null;
     }
 
     scannerActive = false;
-    selectedDeviceId = null;
 
     const scanner = document.getElementById('scanner');
     if (scanner) {
@@ -545,6 +605,7 @@ function playBeep() {
         console.log('Audio non disponibile');
     }
 }
+
 
 // === RICERCA LIBRI ONLINE ===
 
@@ -1041,4 +1102,3 @@ function showConfigurationStatus() {
         console.log(`- Ambiente: ${typeof DEV_MODE !== 'undefined' && DEV_MODE ? 'Sviluppo' : 'Produzione'}`);
     }
 }
-
