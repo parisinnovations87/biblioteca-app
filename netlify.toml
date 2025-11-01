@@ -1,12 +1,7 @@
 [build]
-  # Se stai usando un build system come Vite/Webpack
-  # command = "npm run build"
-  # publish = "dist"
-  
-  # Per deployment diretto (se carichi i file così come sono)
   publish = "."
 
-# Headers per CORS e sicurezza
+# Headers per sicurezza (senza bloccare la fotocamera)
 [[headers]]
   for = "/*"
   [headers.values]
@@ -14,7 +9,8 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # IMPORTANTE: Permetti l'uso della fotocamera
+    Permissions-Policy = "camera=(self), microphone=(self), geolocation=()"
 
 [[headers]]
   for = "/api/*"
@@ -29,7 +25,7 @@
   to = "/index.html"
   status = 200
 
-# Headers specifici per Google APIs
+# Cache per risorse statiche
 [[headers]]
   for = "*.js"
   [headers.values]
