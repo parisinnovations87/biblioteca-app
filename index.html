@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="Permissions-Policy" content="camera=*, microphone=*">
+    <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*">
     <title>La Mia Biblioteca</title>
     
     <!-- Google Identity Services -->
@@ -116,29 +116,43 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="genre">Genere *</label>
+                        <label for="genre">Categoria *</label>
                         <select id="genre" required>
-                            <option value="">Seleziona genere</option>
-                            <option value="Narrativa">Narrativa</option>
-                            <option value="Saggistica">Saggistica</option>
-                            <option value="Giallo/Thriller">Giallo/Thriller</option>
-                            <option value="Fantascienza">Fantascienza</option>
-                            <option value="Fantasy">Fantasy</option>
-                            <option value="Romance">Romance</option>
-                            <option value="Biografia">Biografia</option>
-                            <option value="Storia">Storia</option>
-                            <option value="Cucina">Cucina</option>
-                            <option value="Arte">Arte</option>
-                            <option value="Scienze">Scienze</option>
-                            <option value="Tecnologia">Tecnologia</option>
-                            <option value="Viaggi">Viaggi</option>
-                            <option value="Religione">Religione</option>
-                            <option value="Filosofia">Filosofia</option>
-                            <option value="Bambini">Bambini</option>
-                            <option value="Fumetti">Fumetti</option>
+                            <option value="">Seleziona categoria</option>
+			    <option value="Letteratura italiana">Letteratura italiana</option>
+        		    <option value="Letteratura inglese">Letteratura inglese</option>
+        		    <option value="Letteratura americana">Letteratura americana</option>
+                            <option value="Letteratura francese">Letteratura francese</option>
+        		    <option value="Letteratura russa">Letteratura russa</option>
+        		    <option value="Letteratura spagnola">Letteratura spagnola</option>
+        		    <option value="Saggistica">Saggistica</option>
+       			    <option value="Letteratura per l'infanzia">Letteratura per l'infanzia</option>
                             <option value="Altro">Altro</option>
                         </select>
                     </div>
+
+		    <div class="form-group">
+    			<label for="keywords">Parole chiave</label>
+    			<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px;">
+        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            			<input type="checkbox" name="keywords" value="Giallo" style="width: auto; cursor: pointer;">
+            			Giallo
+        		    </label>
+        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            			<input type="checkbox" name="keywords" value="Fantasy" style="width: auto; cursor: pointer;">
+            			Fantasy
+        		    </label>
+        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            			<input type="checkbox" name="keywords" value="Romanzo rosa" style="width: auto; cursor: pointer;">
+            			Romanzo rosa
+        		    </label>
+        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            			<input type="checkbox" name="keywords" value="Romanzo storico" style="width: auto; cursor: pointer;">
+           			 Romanzo storico
+        		    </label>
+    			</div>
+		    </div>
+
 
                     <div class="form-group">
                         <label for="shelf">Scaffale *</label>
@@ -217,5 +231,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
-
