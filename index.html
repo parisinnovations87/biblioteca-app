@@ -208,16 +208,16 @@
                 <h2>Cerca nella Biblioteca</h2>
                 <div class="search-controls">
                     <div class="form-group">
-                        <input type="text" id="searchInput" placeholder="Cerca per titolo, autore, genere, scaffale..." onkeyup="searchBooks()">
-                    </div>
-                    <div class="search-filters">
-                        <select id="filterGenre" onchange="searchBooks()">
-                            <option value="">Tutti i generi</option>
-                        </select>
-                        <select id="filterShelf" onchange="searchBooks()">
-                            <option value="">Tutti gli scaffali</option>
-                        </select>
-                    </div>
+    			<input type="text" id="searchInput" placeholder="Cerca per titolo, autore, categoria, parole chiave, scaffale...">
+		    </div>
+		    <div class="search-filters">
+    			<select id="filterGenre">
+        		    <option value="">Tutte le categorie</option>
+   		        </select>
+    			<select id="filterShelf">
+        		    <option value="">Tutti gli scaffali</option>
+    			</select>
+		    </div>
                 </div>
                 <div id="searchResults"></div>
             </div>
