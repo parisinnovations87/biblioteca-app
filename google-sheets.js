@@ -164,12 +164,13 @@ async function updateBookInGoogleSheets(book) {
         const rowIndex = await findBookRowInSheet(book.id);
         
         if (rowIndex === -1) {
-            // Libro non trovato, aggiungilo
+            // Libro non trovato, aggiungilo come nuovo
+            console.log('📚 Libro non trovato su Google Sheets, lo aggiungo come nuovo');
             return await saveBookToGoogleSheets(book);
         }
 
         const bookRow = convertBookToRow(book);
-        const range = `${SHEETS_CONFIG.SHEET_NAME}!A${rowIndex}:N${rowIndex}`;
+        const range = `${SHEETS_CONFIG.SHEET_NAME}!A${rowIndex}:O${rowIndex}`;
 
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${range}?valueInputOption=RAW`, {
             method: 'PUT',
@@ -187,7 +188,9 @@ async function updateBookInGoogleSheets(book) {
                 await refreshTokenIfNeeded();
                 return false;
             }
-            throw new Error(`HTTP ${response.status}`);
+            const errorData = await response.json();
+            console.error('Errore risposta API:', errorData);
+            throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
         }
 
         console.log('✅ Libro aggiornato su Google Sheets:', book.title);
@@ -199,6 +202,7 @@ async function updateBookInGoogleSheets(book) {
     } catch (error) {
         console.error('❌ Errore aggiornamento su Google Sheets:', error);
         setSyncStatus('error', 'Errore aggiornamento');
+        showAlert('Errore nell\'aggiornamento su Google Sheets: ' + error.message, 'error');
         return false;
         
     } finally {
