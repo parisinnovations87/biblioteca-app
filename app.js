@@ -217,6 +217,7 @@ function showTab(tabName) {
             break;
         case 'search':
             updateSearchFilters();
+            setupSearchListeners(); // NUOVA RIGA
             break;
     }
 }
@@ -909,6 +910,7 @@ function searchBooks() {
             book.title.toLowerCase().includes(query) ||
             (book.author && book.author.toLowerCase().includes(query)) ||
             book.genre.toLowerCase().includes(query) ||
+            (book.keywords && book.keywords.toLowerCase().includes(query)) ||
             book.shelf.toLowerCase().includes(query) ||
             (book.notes && book.notes.toLowerCase().includes(query))
         );
@@ -923,6 +925,38 @@ function searchBooks() {
     }
     
     displayBooksInContainer(filteredBooks, 'searchResults');
+}
+
+function setupSearchListeners() {
+    const searchInput = document.getElementById('searchInput');
+    const filterGenre = document.getElementById('filterGenre');
+    const filterShelf = document.getElementById('filterShelf');
+    
+    // Rimuovi eventuali listener precedenti
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    
+    const newFilterGenre = filterGenre.cloneNode(true);
+    filterGenre.parentNode.replaceChild(newFilterGenre, filterGenre);
+    
+    const newFilterShelf = filterShelf.cloneNode(true);
+    filterShelf.parentNode.replaceChild(newFilterShelf, filterShelf);
+    
+    // Aggiungi nuovi listener
+    document.getElementById('searchInput').addEventListener('input', function() {
+        searchBooks();
+    });
+    
+    document.getElementById('filterGenre').addEventListener('change', function() {
+        searchBooks();
+    });
+    
+    document.getElementById('filterShelf').addEventListener('change', function() {
+        searchBooks();
+    });
+    
+    // Esegui ricerca vuota iniziale per mostrare tutti i libri
+    searchBooks();
 }
 
 function displayBooksInContainer(booksToShow, containerId) {
@@ -1097,7 +1131,7 @@ function updateSearchFilters() {
     if (!genreFilter || !shelfFilter) return;
     
     const genres = [...new Set(books.map(book => book.genre))].sort();
-    genreFilter.innerHTML = '<option value="">Tutti i generi</option>';
+    genreFilter.innerHTML = '<option value="">Tutte le categorie</option>';
     genres.forEach(genre => {
         genreFilter.innerHTML += `<option value="${genre}">${genre}</option>`;
     });
