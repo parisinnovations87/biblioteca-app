@@ -23,7 +23,7 @@ const SHEETS_CONFIG = {
     
     HEADERS: [
         'ID', 'Titolo', 'Autore', 'ISBN', 'Casa_Editrice', 
-        'Anno', 'Genere', 'Scaffale', 'Posizione', 'Condizioni', 
+        'Anno', 'Categoria', 'Parole_Chiave', 'Scaffale', 'Posizione', 'Condizioni', 
         'Note', 'Data_Aggiunta', 'User_ID', 'User_Name'
     ]
 };
