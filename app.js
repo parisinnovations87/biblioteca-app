@@ -839,7 +839,7 @@ function displayBooks(booksToShow = books) {
                     <h3>${book.title}</h3>
                     <p><strong>Autore:</strong> ${book.author || 'Non specificato'}</p>
                     <p><strong>Categoria:</strong> ${book.genre}</p>
-		    ${book.keywords ? `<p><strong>Parole chiave:</strong> ${book.keywords}</p>` : ''}
+                    ${book.keywords ? `<p><strong>Parole chiave:</strong> ${book.keywords}</p>` : ''}
                     ${book.year ? `<p><strong>Anno:</strong> ${book.year}</p>` : ''}
                     ${book.publisher ? `<p><strong>Editore:</strong> ${book.publisher}</p>` : ''}
                     <p><strong>Posizione:</strong> ${book.shelf}${book.position ? ' - ' + book.position : ''}</p>
@@ -848,12 +848,28 @@ function displayBooks(booksToShow = books) {
                     ${book.notes ? `<p><strong>Note:</strong> ${book.notes}</p>` : ''}
                 </div>
                 <div class="book-actions">
-                    <button class="edit-btn" onclick="editBook('${book.id}')">Modifica</button>
-                    <button class="delete-btn" onclick="deleteBook('${book.id}')">Elimina</button>
+                    <button class="edit-btn" data-book-id="${book.id}" data-action="edit">Modifica</button>
+                    <button class="delete-btn" data-book-id="${book.id}" data-action="delete">Elimina</button>
                 </div>
             </div>
         </div>
     `).join('');
+    
+    // Event delegation per i pulsanti nella biblioteca
+    booksList.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const bookId = this.getAttribute('data-book-id');
+            const action = this.getAttribute('data-action');
+            
+            if (action === 'edit') {
+                editBook(bookId);
+            } else if (action === 'delete') {
+                deleteBook(bookId);
+            }
+        });
+    });
 }
 
 function getGenreIcon(genre) {
@@ -938,12 +954,28 @@ function displayBooksInContainer(booksToShow, containerId) {
                     ${book.notes ? `<p><strong>Note:</strong> ${book.notes}</p>` : ''}
                 </div>
                 <div class="book-actions">
-                    <button class="edit-btn" onclick="editBook('${book.id}')">Modifica</button>
-                    <button class="delete-btn" onclick="deleteBook('${book.id}')">Elimina</button>
+                    <button class="edit-btn" data-book-id="${book.id}" data-action="edit">Modifica</button>
+                    <button class="delete-btn" data-book-id="${book.id}" data-action="delete">Elimina</button>
                 </div>
             </div>
         </div>
     `).join('');
+    
+    // Event delegation per i pulsanti
+    container.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const bookId = this.getAttribute('data-book-id');
+            const action = this.getAttribute('data-action');
+            
+            if (action === 'edit') {
+                editBook(bookId);
+            } else if (action === 'delete') {
+                deleteBook(bookId);
+            }
+        });
+    });
 }
 
 // === ORDINAMENTO ===
