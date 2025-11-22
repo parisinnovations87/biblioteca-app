@@ -217,7 +217,6 @@ function showTab(tabName) {
             break;
         case 'search':
             updateSearchFilters();
-            setupSearchListeners(); // NUOVA RIGA
             break;
     }
 }
