@@ -317,7 +317,8 @@ function convertRowToBook(headers, row) {
             case 'ISBN': book.isbn = value; break;
             case 'Casa_Editrice': book.publisher = value; break;
             case 'Anno': book.year = value; break;
-            case 'Genere': book.genre = value; break;
+            case 'Categoria': book.genre = value; break;
+	    case 'Parole_Chiave': book.keywords = value; break;
             case 'Scaffale': book.shelf = value; break;
             case 'Posizione': book.position = value; break;
             case 'Condizioni': book.condition = value; break;
@@ -334,20 +335,21 @@ function convertRowToBook(headers, row) {
 // Converte un oggetto libro in riga per il foglio
 function convertBookToRow(book) {
     return [
-        book.id || '',
-        book.title || '',
-        book.author || '',
-        book.isbn || '',
-        book.publisher || '',
-        book.year || '',
-        book.genre || '',
-        book.shelf || '',
-        book.position || '',
-        book.condition || '',
-        book.notes || '',
-        book.addedDate || '',
-        book.userId || '',
-        book.userName || ''
+    	book.id || '',
+    	book.title || '',
+    	book.author || '',
+    	book.isbn || '',
+    	book.publisher || '',
+   	book.year || '',
+    	book.genre || '',
+    	book.keywords || '',
+    	book.shelf || '',
+    	book.position || '',
+   	book.condition || '',
+    	book.notes || '',
+    	book.addedDate || '',
+    	book.userId || '',
+    	book.userName || ''
     ];
 }
 
