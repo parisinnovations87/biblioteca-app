@@ -719,6 +719,7 @@ async function addBook() {
         publisher: document.getElementById('publisher').value.trim(),
         year: document.getElementById('year').value,
         genre: genre,
+	keywords: getSelectedKeywords(),
         shelf: shelf,
         position: document.getElementById('position').value.trim(),
         condition: document.getElementById('condition').value,
@@ -778,6 +779,7 @@ function editBook(bookId) {
     document.getElementById('position').value = book.position || '';
     document.getElementById('condition').value = book.condition || '';
     document.getElementById('notes').value = book.notes || '';
+    setSelectedKeywords(book.keywords || '');
     
     isEditMode = true;
     editingBookId = bookId;
@@ -836,7 +838,8 @@ function displayBooks(booksToShow = books) {
                 <div class="book-details">
                     <h3>${book.title}</h3>
                     <p><strong>Autore:</strong> ${book.author || 'Non specificato'}</p>
-                    <p><strong>Genere:</strong> ${book.genre}</p>
+                    <p><strong>Categoria:</strong> ${book.genre}</p>
+		    ${book.keywords ? `<p><strong>Parole chiave:</strong> ${book.keywords}</p>` : ''}
                     ${book.year ? `<p><strong>Anno:</strong> ${book.year}</p>` : ''}
                     ${book.publisher ? `<p><strong>Editore:</strong> ${book.publisher}</p>` : ''}
                     <p><strong>Posizione:</strong> ${book.shelf}${book.position ? ' - ' + book.position : ''}</p>
@@ -929,9 +932,14 @@ function displayBooksInContainer(booksToShow, containerId) {
                 <div class="book-details">
                     <h3>${book.title}</h3>
                     <p><strong>Autore:</strong> ${book.author || 'Non specificato'}</p>
-                    <p><strong>Genere:</strong> ${book.genre}</p>
+                    <p><strong>Categoria:</strong> ${book.genre}</p>
+                    ${book.keywords ? `<p><strong>Parole chiave:</strong> ${book.keywords}</p>` : ''}
                     <p><strong>Posizione:</strong> ${book.shelf}${book.position ? ' - ' + book.position : ''}</p>
                     ${book.notes ? `<p><strong>Note:</strong> ${book.notes}</p>` : ''}
+                </div>
+                <div class="book-actions">
+                    <button class="edit-btn" onclick="editBook('${book.id}')">Modifica</button>
+                    <button class="delete-btn" onclick="deleteBook('${book.id}')">Elimina</button>
                 </div>
             </div>
         </div>
@@ -1031,6 +1039,9 @@ function clearForm() {
         const element = document.getElementById(id);
         if (element) element.selectedIndex = 0;
     });
+
+    // Reset checkboxes parole chiave
+    document.querySelectorAll('input[name="keywords"]').forEach(cb => cb.checked = false);
     
     resetEditMode();
 }
@@ -1101,4 +1112,15 @@ function showConfigurationStatus() {
         console.log(`- Google Sheet ID: ${SHEETS_CONFIG.SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID_HERE' ? '✅ Configurato' : '❌ Mancante'}`);
         console.log(`- Ambiente: ${typeof DEV_MODE !== 'undefined' && DEV_MODE ? 'Sviluppo' : 'Produzione'}`);
     }
+}
+
+function getSelectedKeywords() {
+    const checkboxes = document.querySelectorAll('input[name="keywords"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value).join(', ');
+}
+
+function setSelectedKeywords(keywordsString) {
+    document.querySelectorAll('input[name="keywords"]').forEach(cb => {
+        cb.checked = keywordsString.includes(cb.value);
+    });
 }
