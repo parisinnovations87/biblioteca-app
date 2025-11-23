@@ -21,11 +21,15 @@ async function loadUserLibraries() {
 // Carica da Google Sheets
 async function loadLibrariesFromGoogleSheets() {
     if (!accessToken) {
+        console.log('❌ Token non disponibile, carico da localStorage');
         loadLibrariesFromLocalStorage();
         return;
     }
 
     try {
+        console.log('📥 Caricamento librerie da Google Sheets...');
+        console.log('URL:', GOOGLE_APIS.LIBRARIES_READ);
+        
         const response = await fetch(`${GOOGLE_APIS.LIBRARIES_READ}?valueRenderOption=UNFORMATTED_VALUE`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -34,18 +38,34 @@ async function loadLibrariesFromGoogleSheets() {
         });
 
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Errore risposta:', errorData);
+            
             if (response.status === 401) {
                 await refreshTokenIfNeeded();
                 return;
             }
-            throw new Error(`HTTP ${response.status}`);
+            
+            if (response.status === 404 || response.status === 400) {
+                console.log('⚠️ Foglio "Librerie" non trovato, lo inizializzo...');
+                await initializeLibrariesSheet();
+                userLibraries = [];
+                saveLibrariesToLocalStorage();
+                return;
+            }
+            
+            throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
         }
 
         const data = await response.json();
+        console.log('📊 Dati ricevuti:', data);
         
         if (data.values && data.values.length > 1) {
             const headers = data.values[0];
             const rows = data.values.slice(1);
+            
+            console.log('📋 Headers:', headers);
+            console.log('📚 Righe:', rows);
             
             // Filtra solo le librerie dell'utente corrente
             userLibraries = rows
@@ -56,8 +76,9 @@ async function loadLibrariesFromGoogleSheets() {
                     dateCreated: row[2]
                 }));
             
-            console.log(`📚 Caricate ${userLibraries.length} librerie da Google Sheets`);
+            console.log(`✅ Caricate ${userLibraries.length} librerie da Google Sheets`);
         } else {
+            console.log('⚠️ Foglio vuoto o solo headers');
             userLibraries = [];
             
             // Inizializza il foglio con gli headers se necessario
@@ -70,6 +91,7 @@ async function loadLibrariesFromGoogleSheets() {
 
     } catch (error) {
         console.error('❌ Errore caricamento librerie da Google Sheets:', error);
+        showAlert('Errore caricamento librerie: ' + error.message, 'error');
         loadLibrariesFromLocalStorage();
     }
 }
@@ -79,6 +101,8 @@ async function initializeLibrariesSheet() {
     if (!accessToken) return;
 
     try {
+        console.log('🔧 Inizializzazione foglio Librerie...');
+        
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}?valueInputOption=RAW`, {
             method: 'PUT',
             headers: {
@@ -92,6 +116,9 @@ async function initializeLibrariesSheet() {
 
         if (response.ok) {
             console.log('✅ Foglio Librerie inizializzato');
+        } else {
+            const errorData = await response.json();
+            console.error('❌ Errore inizializzazione:', errorData);
         }
     } catch (error) {
         console.error('❌ Errore inizializzazione foglio Librerie:', error);
@@ -103,6 +130,7 @@ function loadLibrariesFromLocalStorage() {
     if (currentUser) {
         const saved = localStorage.getItem('userLibraries_' + currentUser.id);
         userLibraries = saved ? JSON.parse(saved) : [];
+        console.log(`📱 Caricate ${userLibraries.length} librerie da localStorage`);
     }
 }
 
@@ -110,6 +138,7 @@ function loadLibrariesFromLocalStorage() {
 function saveLibrariesToLocalStorage() {
     if (currentUser) {
         localStorage.setItem('userLibraries_' + currentUser.id, JSON.stringify(userLibraries));
+        console.log('💾 Librerie salvate su localStorage');
     }
 }
 
@@ -134,24 +163,34 @@ async function addLibrary() {
         dateCreated: new Date().toLocaleDateString('it-IT')
     };
     
+    // Aggiungi subito alla lista locale
     userLibraries.push(library);
-    
-    // Salva su Google Sheets se disponibile
-    if (currentUser.authMethod === 'google' && accessToken) {
-        await saveLibraryToGoogleSheets(library);
-    }
-    
     saveLibrariesToLocalStorage();
     updateLibraryDropdown();
     displayLibraries();
     
     document.getElementById('libraryName').value = '';
-    showAlert('Libreria aggiunta con successo!', 'success');
+    showAlert('Libreria aggiunta localmente!', 'success');
+    
+    // Salva su Google Sheets se disponibile (in background)
+    if (currentUser.authMethod === 'google' && accessToken) {
+        console.log('🔄 Tentativo salvataggio su Google Sheets...');
+        const saved = await saveLibraryToGoogleSheets(library);
+        
+        if (saved) {
+            showAlert('Libreria sincronizzata con Google Sheets!', 'success');
+        } else {
+            showAlert('Libreria salvata solo localmente. Errore sincronizzazione Google Sheets.', 'info');
+        }
+    }
 }
 
 // Salva libreria su Google Sheets
 async function saveLibraryToGoogleSheets(library) {
-    if (!accessToken) return false;
+    if (!accessToken) {
+        console.log('❌ Token non disponibile');
+        return false;
+    }
 
     try {
         const libraryRow = [
@@ -159,6 +198,8 @@ async function saveLibraryToGoogleSheets(library) {
             library.name,
             library.dateCreated
         ];
+        
+        console.log('📤 Invio libreria a Google Sheets:', libraryRow);
         
         const response = await fetch(`${GOOGLE_APIS.LIBRARIES_WRITE}?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
             method: 'POST',
@@ -172,11 +213,21 @@ async function saveLibraryToGoogleSheets(library) {
         });
 
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Errore risposta API:', errorData);
+            
             if (response.status === 401) {
                 await refreshTokenIfNeeded();
+                showAlert('Sessione scaduta, riprova', 'error');
                 return false;
             }
-            throw new Error(`HTTP ${response.status}`);
+            
+            if (response.status === 404) {
+                showAlert('Foglio "Librerie" non trovato. Crealo manualmente su Google Sheets', 'error');
+                return false;
+            }
+            
+            throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
         }
 
         console.log('✅ Libreria salvata su Google Sheets:', library.name);
@@ -184,6 +235,7 @@ async function saveLibraryToGoogleSheets(library) {
 
     } catch (error) {
         console.error('❌ Errore salvataggio libreria:', error);
+        showAlert('Errore nel salvataggio su Google Sheets: ' + error.message, 'error');
         return false;
     }
 }
@@ -225,22 +277,25 @@ function displayLibraries() {
             <div class="empty-state">
                 <div class="icon">📚</div>
                 <h3>Nessuna libreria configurata</h3>
-                <p>Aggiungi le tue librerie per organizzare meglio i libri!</p>
+                <p>Aggiungi le tue librerie per organizzare al meglio i tuoi libri!</p>
             </div>
         `;
         return;
     }
     
-    librariesList.innerHTML = userLibraries.map(library => `
-        <div class="library-card">
-            <div class="library-info">
-                <h3>📚 ${library.name}</h3>
-                <p>Aggiunta il: ${library.dateCreated}</p>
-                <p>Libri: ${books.filter(b => b.shelf === library.name).length}</p>
+    librariesList.innerHTML = userLibraries.map(library => {
+        const booksCount = books.filter(b => b.shelf === library.name).length;
+        return `
+            <div class="library-card">
+                <div class="library-info">
+                    <h3>📚 ${library.name}</h3>
+                    <p>Aggiunta il: ${library.dateCreated}</p>
+                    <p>Libri: ${booksCount}</p>
+                </div>
+                <button class="delete-btn" onclick="deleteLibrary('${library.name.replace(/'/g, "\\'")}')">Elimina</button>
             </div>
-            <button class="delete-btn" onclick="deleteLibrary('${library.name}')">Elimina</button>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Aggiorna dropdown scaffale
@@ -272,6 +327,8 @@ function updateLibraryDropdown() {
     if (currentValue && userLibraries.some(lib => lib.name === currentValue)) {
         shelfSelect.value = currentValue;
     }
+    
+    console.log('📋 Dropdown librerie aggiornato con', userLibraries.length, 'librerie');
 }
 
 // Gestisce la selezione dello scaffale
@@ -301,10 +358,17 @@ function handleShelfSelection() {
             userLibraries.push(library);
             
             // Salva
-            if (currentUser.authMethod === 'google' && accessToken) {
-                saveLibraryToGoogleSheets(library);
-            }
             saveLibrariesToLocalStorage();
+            
+            if (currentUser.authMethod === 'google' && accessToken) {
+                saveLibraryToGoogleSheets(library).then(saved => {
+                    if (saved) {
+                        showAlert('Libreria aggiunta e sincronizzata!', 'success');
+                    } else {
+                        showAlert('Libreria aggiunta localmente', 'info');
+                    }
+                });
+            }
             
             // Aggiorna dropdown
             updateLibraryDropdown();
