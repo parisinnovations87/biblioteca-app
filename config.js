@@ -25,6 +25,13 @@ const SHEETS_CONFIG = {
         'ID', 'Titolo', 'Autore', 'ISBN', 'Casa_Editrice', 
         'Anno', 'Categoria', 'Parole_Chiave', 'Scaffale', 'Posizione', 'Condizioni', 
         'Note', 'Data_Aggiunta', 'User_ID', 'User_Name'
+    ],
+
+    // AGGIUNGI QUESTA SEZIONE NUOVA ⬇️
+    LIBRARIES_SHEET_NAME: 'Librerie',
+    
+    LIBRARIES_HEADERS: [
+        'User_ID', 'Nome_Libreria', 'Data_Creazione'
     ]
 };
 
@@ -34,6 +41,10 @@ const GOOGLE_APIS = {
     SHEETS_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.SHEET_NAME}:append`,
     SHEETS_UPDATE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.SHEET_NAME}`,
     USERINFO: 'https://www.googleapis.com/oauth2/v2/userinfo'
+
+    // AGGIUNGI QUESTE DUE RIGHE NUOVE ⬇️
+    LIBRARIES_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}`,
+    LIBRARIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}:append`
 };
 
 // Verifica se la configurazione è valida - CORRETTA
