@@ -774,6 +774,7 @@ body {
     margin-bottom: 8px;
 }
 
+
 /* ========================================
    STILI PER SCANNER QUAGGA
    Aggiungi questi stili al tuo styles.css
@@ -905,5 +906,85 @@ body {
         left: 3%;
         right: 3%;
         bottom: 15%;
+    }
+}
+
+/* ========================================
+   STILI PER SEZIONE LIBRERIE
+   ======================================== */
+
+.library-form {
+    background: linear-gradient(135deg, #f8f9fa, #e3f2fd);
+    padding: 30px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.library-form h3 {
+    color: #667eea;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+}
+
+.library-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.library-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    border-color: #667eea;
+}
+
+.library-info h3 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.library-info p {
+    color: #666;
+    margin: 4px 0;
+    font-size: 0.9rem;
+}
+
+.library-card .delete-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .library-form {
+        padding: 20px;
+    }
+    
+    .library-form > div {
+        flex-direction: column !important;
+    }
+    
+    .library-form .add-btn {
+        width: 100% !important;
+        margin-top: 15px !important;
+    }
+    
+    .library-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .library-card .delete-btn {
+        width: 100%;
     }
 }
