@@ -26,8 +26,7 @@ const SHEETS_CONFIG = {
         'Anno', 'Categoria', 'Parole_Chiave', 'Scaffale', 'Posizione', 'Condizioni', 
         'Note', 'Data_Aggiunta', 'User_ID', 'User_Name'
     ],
-
-    // AGGIUNGI QUESTA SEZIONE NUOVA ⬇️
+    
     LIBRARIES_SHEET_NAME: 'Librerie',
     
     LIBRARIES_HEADERS: [
@@ -40,14 +39,12 @@ const GOOGLE_APIS = {
     SHEETS_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.SHEET_NAME}`,
     SHEETS_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.SHEET_NAME}:append`,
     SHEETS_UPDATE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.SHEET_NAME}`,
-    USERINFO: 'https://www.googleapis.com/oauth2/v2/userinfo'
-
-    // AGGIUNGI QUESTE DUE RIGHE NUOVE ⬇️
+    USERINFO: 'https://www.googleapis.com/oauth2/v2/userinfo',
     LIBRARIES_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}`,
     LIBRARIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}:append`
 };
 
-// Verifica se la configurazione è valida - CORRETTA
+// Verifica se la configurazione è valida
 function isConfigurationValid() {
     const isGoogleConfigValid = GOOGLE_CONFIG.CLIENT_ID && 
                                GOOGLE_CONFIG.CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com';
@@ -73,6 +70,9 @@ if (DEV_MODE) {
         clientIdConfigured: !!GOOGLE_CONFIG.CLIENT_ID && GOOGLE_CONFIG.CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com',
         sheetIdConfigured: !!SHEETS_CONFIG.SHEET_ID && SHEETS_CONFIG.SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID_HERE',
         redirectUri: GOOGLE_CONFIG.REDIRECT_URI,
-        isValid: isConfigurationValid()
+        isValid: isConfigurationValid(),
+        librariesSheetName: SHEETS_CONFIG.LIBRARIES_SHEET_NAME
     });
+    
+    console.log('📍 URLs API:', GOOGLE_APIS);
 }
