@@ -59,7 +59,7 @@
                     <div style="font-size: 0.8rem; color: #888;" id="authMethod"></div>
                 </div>
                 <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
-                    <span id="syncStatus" style="font-size: 0.8rem; color: #28a745;">📡 Sincronizzato</span>
+                    <span id="syncStatus" style="font-size: 0.8rem; color: #28a745;">🔁 Sincronizzato</span>
                     <button onclick="manualSync()" class="sync-btn" title="Sincronizza manualmente">🔄</button>
                     <button onclick="signOut()" class="logout-btn">Esci</button>
                 </div>
@@ -69,6 +69,7 @@
                 <button class="tab active" onclick="showTab('add')">➕ Aggiungi Libro</button>
                 <button class="tab" onclick="showTab('library')">📖 Mia Biblioteca</button>
                 <button class="tab" onclick="showTab('search')">🔍 Cerca</button>
+                <button class="tab" onclick="showTab('libraries')">🏛️ Le Mie Librerie</button>
             </div>
 
             <!-- Tab Aggiungi Libro -->
@@ -119,44 +120,47 @@
                         <label for="genre">Categoria *</label>
                         <select id="genre" required>
                             <option value="">Seleziona categoria</option>
-			    <option value="Letteratura italiana">Letteratura italiana</option>
-        		    <option value="Letteratura inglese">Letteratura inglese</option>
-        		    <option value="Letteratura americana">Letteratura americana</option>
+                            <option value="Letteratura italiana">Letteratura italiana</option>
+                            <option value="Letteratura inglese">Letteratura inglese</option>
+                            <option value="Letteratura americana">Letteratura americana</option>
                             <option value="Letteratura francese">Letteratura francese</option>
-        		    <option value="Letteratura russa">Letteratura russa</option>
-        		    <option value="Letteratura spagnola">Letteratura spagnola</option>
-        		    <option value="Saggistica">Saggistica</option>
-       			    <option value="Letteratura per l'infanzia">Letteratura per l'infanzia</option>
-                            <option value="Altro">Altro</option>
+                            <option value="Letteratura russa">Letteratura russa</option>
+                            <option value="Letteratura spagnola">Letteratura spagnola</option>
+                            <option value="Saggistica">Saggistica</option>
+                            <option value="Letteratura per l'infanzia">Letteratura per l'infanzia</option>
                         </select>
                     </div>
 
-		    <div class="form-group">
-    			<label for="keywords">Parole chiave</label>
-    			<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px;">
-        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-            			<input type="checkbox" name="keywords" value="Giallo" style="width: auto; cursor: pointer;">
-            			Giallo
-        		    </label>
-        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-            			<input type="checkbox" name="keywords" value="Fantasy" style="width: auto; cursor: pointer;">
-            			Fantasy
-        		    </label>
-        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-            			<input type="checkbox" name="keywords" value="Romanzo rosa" style="width: auto; cursor: pointer;">
-            			Romanzo rosa
-        		    </label>
-        		    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-            			<input type="checkbox" name="keywords" value="Romanzo storico" style="width: auto; cursor: pointer;">
-           			 Romanzo storico
-        		    </label>
-    			</div>
-		    </div>
-
+                    <div class="form-group">
+                        <label for="keywords">Parole chiave</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" name="keywords" value="Giallo" style="width: auto; cursor: pointer;">
+                                Giallo
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" name="keywords" value="Fantasy" style="width: auto; cursor: pointer;">
+                                Fantasy
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" name="keywords" value="Romanzo rosa" style="width: auto; cursor: pointer;">
+                                Romanzo rosa
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" name="keywords" value="Romanzo storico" style="width: auto; cursor: pointer;">
+                                Romanzo storico
+                            </label>
+                        </div>
+                    </div>
 
                     <div class="form-group">
-                        <label for="shelf">Scaffale *</label>
-                        <input type="text" id="shelf" placeholder="es. Salotto, Studio, Camera da letto" required>
+                        <label for="shelf">Libreria *</label>
+                        <select id="shelf" required onchange="handleShelfSelection()">
+                            <option value="">Seleziona libreria</option>
+                        </select>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                            💡 Non trovi la tua libreria? Aggiungila dalla sezione "Le Mie Librerie"
+                        </p>
                     </div>
 
                     <div class="form-group">
@@ -208,18 +212,45 @@
                 <h2>Cerca nella Biblioteca</h2>
                 <div class="search-controls">
                     <div class="form-group">
-    			<input type="text" id="searchInput" placeholder="Cerca per titolo, autore, categoria, parole chiave, scaffale..." onkeyup="searchBooks()">
-		    </div>
-		    <div class="search-filters">
-    			<select id="filterGenre" onchange="searchBooks()">
-        		    <option value="">Tutte le categorie</option>
-    			</select>
-    			<select id="filterShelf" onchange="searchBooks()">
-        		    <option value="">Tutti gli scaffali</option>
-    			</select>
-		    </div>
+                        <input type="text" id="searchInput" placeholder="Cerca per titolo, autore, categoria, parole chiave, scaffale..." onkeyup="searchBooks()">
+                    </div>
+                    <div class="search-filters">
+                        <select id="filterGenre" onchange="searchBooks()">
+                            <option value="">Tutte le categorie</option>
+                        </select>
+                        <select id="filterShelf" onchange="searchBooks()">
+                            <option value="">Tutti gli scaffali</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="searchResults"></div>
+            </div>
+
+            <!-- Tab Le Mie Librerie -->
+            <div id="librariesTab" class="tab-content">
+                <h2>🏛️ Le Mie Librerie</h2>
+                <p style="color: #666; margin-bottom: 30px;">
+                    Configura le tue librerie per organizzare al meglio i tuoi libri. 
+                    Quando aggiungi un libro, potrai selezionare una di queste librerie.
+                </p>
+                
+                <div class="library-form">
+                    <h3>Aggiungi una nuova libreria</h3>
+                    <div style="display: flex; gap: 15px; align-items: flex-end;">
+                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                            <label for="libraryName">Nome Libreria</label>
+                            <input type="text" id="libraryName" placeholder="es. Camera matrimoniale, Salotto, Studio...">
+                        </div>
+                        <button class="add-btn" onclick="addLibrary()" style="width: auto; padding: 15px 30px; margin: 0;">
+                            ➕ Aggiungi
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 40px;">
+                    <h3>Le tue librerie</h3>
+                    <div id="librariesList"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -228,6 +259,7 @@
     <script src="config.js"></script>
     <script src="google-auth.js"></script>
     <script src="google-sheets.js"></script>
+    <script src="libraries.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
