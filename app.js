@@ -166,6 +166,9 @@ function showApp() {
     } else {
         setSyncStatus('offline', 'Solo locale');
     }
+
+    // Carica le librerie dell'utente
+    loadUserLibraries();
 }
 
 function hideApp() {
@@ -217,6 +220,9 @@ function showTab(tabName) {
             break;
         case 'search':
             updateSearchFilters();
+            break;
+        case 'libraries':
+            displayLibraries();
             break;
     }
 }
@@ -1050,6 +1056,9 @@ function loadBooks() {
     } else {
         loadBooksFromLocalStorage();
     }
+    
+    // Aggiorna anche il dropdown delle librerie
+    updateLibraryDropdown();
 }
 
 function loadBooksFromLocalStorage() {
