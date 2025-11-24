@@ -255,15 +255,147 @@ async function deleteLibrary(libraryName) {
         }
     }
     
+    // Rimuovi dalla lista locale
     userLibraries = userLibraries.filter(lib => lib.name !== libraryName);
     
-    // TODO: Elimina da Google Sheets (implementazione futura se necessario)
+    // Elimina da Google Sheets se disponibile
+    if (currentUser.authMethod === 'google' && accessToken) {
+        await deleteLibraryFromGoogleSheets(libraryName);
+    }
     
     saveLibrariesToLocalStorage();
     updateLibraryDropdown();
     displayLibraries();
     
     showAlert('Libreria eliminata', 'success');
+}
+
+// Elimina libreria da Google Sheets
+async function deleteLibraryFromGoogleSheets(libraryName) {
+    if (!accessToken) return false;
+
+    try {
+        console.log('🗑️ Ricerca libreria da eliminare:', libraryName);
+        
+        // Prima trova la riga della libreria
+        const rowIndex = await findLibraryRowInSheet(libraryName);
+        
+        if (rowIndex === -1) {
+            console.log('⚠️ Libreria non trovata su Google Sheets');
+            return true; // Non è un errore se non esiste
+        }
+
+        console.log('📍 Libreria trovata alla riga:', rowIndex);
+
+        // Elimina la riga usando batchUpdate
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}:batchUpdate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                requests: [{
+                    deleteDimension: {
+                        range: {
+                            sheetId: await getLibrariesSheetId(),
+                            dimension: 'ROWS',
+                            startIndex: rowIndex - 1, // 0-based
+                            endIndex: rowIndex
+                        }
+                    }
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Errore eliminazione:', errorData);
+            
+            if (response.status === 401) {
+                await refreshTokenIfNeeded();
+                return false;
+            }
+            
+            throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
+        }
+
+        console.log('✅ Libreria eliminata da Google Sheets');
+        return true;
+
+    } catch (error) {
+        console.error('❌ Errore eliminazione libreria da Google Sheets:', error);
+        showAlert('Libreria eliminata localmente ma errore su Google Sheets', 'info');
+        return false;
+    }
+}
+
+// Trova l'indice della riga di una libreria nel foglio
+async function findLibraryRowInSheet(libraryName) {
+    try {
+        const response = await fetch(`${GOOGLE_APIS.LIBRARIES_READ}?valueRenderOption=UNFORMATTED_VALUE`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.values || data.values.length <= 1) {
+            return -1;
+        }
+
+        // Cerca la libreria per nome e user ID
+        for (let i = 1; i < data.values.length; i++) {
+            if (data.values[i][0] === currentUser.id && data.values[i][1] === libraryName) {
+                return i + 1; // 1-based index per Google Sheets
+            }
+        }
+
+        return -1; // Non trovata
+
+    } catch (error) {
+        console.error('❌ Errore ricerca libreria nel foglio:', error);
+        return -1;
+    }
+}
+
+// Ottieni l'ID del foglio "Librerie"
+async function getLibrariesSheetId() {
+    try {
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Trova il foglio "Librerie"
+        const librariesSheet = data.sheets.find(sheet => 
+            sheet.properties.title === SHEETS_CONFIG.LIBRARIES_SHEET_NAME
+        );
+
+        if (!librariesSheet) {
+            console.error('❌ Foglio "Librerie" non trovato');
+            return 0; // Default al primo foglio
+        }
+
+        console.log('📋 Sheet ID trovato:', librariesSheet.properties.sheetId);
+        return librariesSheet.properties.sheetId;
+
+    } catch (error) {
+        console.error('❌ Errore recupero Sheet ID:', error);
+        return 0; // Default al primo foglio
+    }
 }
 
 // Visualizza librerie
