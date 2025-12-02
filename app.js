@@ -169,6 +169,9 @@ function showApp() {
 
     // Carica le librerie dell'utente
     loadUserLibraries();
+    
+    // NUOVO: Carica le categorie dell'utente
+    loadUserCategories();
 }
 
 function hideApp() {
@@ -223,6 +226,9 @@ function showTab(tabName) {
             break;
         case 'libraries':
             displayLibraries();
+            break;
+        case 'categories':  // NUOVO CASE
+            displayCategories();
             break;
     }
 }
