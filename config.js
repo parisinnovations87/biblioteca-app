@@ -31,6 +31,13 @@ const SHEETS_CONFIG = {
     
     LIBRARIES_HEADERS: [
         'User_ID', 'Nome_Libreria', 'Data_Creazione'
+    ],
+    
+    // NUOVO: Configurazione foglio Categorie
+    CATEGORIES_SHEET_NAME: 'Categorie',
+    
+    CATEGORIES_HEADERS: [
+        'User_ID', 'Nome_Categoria', 'Data_Creazione'
     ]
 };
 
@@ -41,7 +48,10 @@ const GOOGLE_APIS = {
     SHEETS_UPDATE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.SHEET_NAME}`,
     USERINFO: 'https://www.googleapis.com/oauth2/v2/userinfo',
     LIBRARIES_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}`,
-    LIBRARIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}:append`
+    LIBRARIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}:append`,
+    // NUOVO: URLs per foglio Categorie
+    CATEGORIES_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.CATEGORIES_SHEET_NAME}`,
+    CATEGORIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.CATEGORIES_SHEET_NAME}:append`
 };
 
 // Verifica se la configurazione è valida
@@ -71,8 +81,9 @@ if (DEV_MODE) {
         sheetIdConfigured: !!SHEETS_CONFIG.SHEET_ID && SHEETS_CONFIG.SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID_HERE',
         redirectUri: GOOGLE_CONFIG.REDIRECT_URI,
         isValid: isConfigurationValid(),
-        librariesSheetName: SHEETS_CONFIG.LIBRARIES_SHEET_NAME
+        librariesSheetName: SHEETS_CONFIG.LIBRARIES_SHEET_NAME,
+        categoriesSheetName: SHEETS_CONFIG.CATEGORIES_SHEET_NAME
     });
     
-    console.log('📍 URLs API:', GOOGLE_APIS);
+    console.log('🔍 URLs API:', GOOGLE_APIS);
 }
