@@ -59,7 +59,7 @@
                     <div style="font-size: 0.8rem; color: #888;" id="authMethod"></div>
                 </div>
                 <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
-                    <span id="syncStatus" style="font-size: 0.8rem; color: #28a745;">🔁 Sincronizzato</span>
+                    <span id="syncStatus" style="font-size: 0.8rem; color: #28a745;">🔄 Sincronizzato</span>
                     <button onclick="manualSync()" class="sync-btn" title="Sincronizza manualmente">🔄</button>
                     <button onclick="signOut()" class="logout-btn">Esci</button>
                 </div>
@@ -69,7 +69,8 @@
                 <button class="tab active" onclick="showTab('add')">➕ Aggiungi Libro</button>
                 <button class="tab" onclick="showTab('library')">📖 Mia Biblioteca</button>
                 <button class="tab" onclick="showTab('search')">🔍 Cerca</button>
-                <button class="tab" onclick="showTab('libraries')">🏛️ Le Mie Librerie</button>
+                <button class="tab" onclick="showTab('libraries')">🛋️ Le Mie Librerie</button>
+                <button class="tab" onclick="showTab('categories')">📚 Categorie</button>
             </div>
 
             <!-- Tab Aggiungi Libro -->
@@ -118,17 +119,12 @@
 
                     <div class="form-group">
                         <label for="genre">Categoria *</label>
-                        <select id="genre" required>
+                        <select id="genre" required onchange="handleCategorySelection()">
                             <option value="">Seleziona categoria</option>
-                            <option value="Letteratura italiana">Letteratura italiana</option>
-                            <option value="Letteratura inglese">Letteratura inglese</option>
-                            <option value="Letteratura americana">Letteratura americana</option>
-                            <option value="Letteratura francese">Letteratura francese</option>
-                            <option value="Letteratura russa">Letteratura russa</option>
-                            <option value="Letteratura spagnola">Letteratura spagnola</option>
-                            <option value="Saggistica">Saggistica</option>
-                            <option value="Letteratura per l'infanzia">Letteratura per l'infanzia</option>
                         </select>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                            💡 Non trovi la tua categoria? Aggiungila dalla sezione "Categorie"
+                        </p>
                     </div>
 
                     <div class="form-group">
@@ -228,7 +224,7 @@
 
             <!-- Tab Le Mie Librerie -->
             <div id="librariesTab" class="tab-content">
-                <h2>🏛️ Le Mie Librerie</h2>
+                <h2>🛋️ Le Mie Librerie</h2>
                 <p style="color: #666; margin-bottom: 30px;">
                     Configura le tue librerie per organizzare al meglio i tuoi libri. 
                     Quando aggiungi un libro, potrai selezionare una di queste librerie.
@@ -252,6 +248,33 @@
                     <div id="librariesList"></div>
                 </div>
             </div>
+
+            <!-- Tab Categorie -->
+            <div id="categoriesTab" class="tab-content">
+                <h2>📚 Categorie</h2>
+                <p style="color: #666; margin-bottom: 30px;">
+                    Configura le tue categorie personalizzate per organizzare i tuoi libri. 
+                    Quando aggiungi un libro, potrai selezionare una di queste categorie.
+                </p>
+                
+                <div class="library-form">
+                    <h3>Aggiungi una nuova categoria</h3>
+                    <div style="display: flex; gap: 15px; align-items: flex-end;">
+                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                            <label for="categoryName">Nome Categoria</label>
+                            <input type="text" id="categoryName" placeholder="es. Romanzi, Saggi, Fantasy, Storia...">
+                        </div>
+                        <button class="add-btn" onclick="addCategory()" style="width: auto; padding: 15px 30px; margin: 0;">
+                            ➕ Aggiungi
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 40px;">
+                    <h3>Le tue categorie</h3>
+                    <div id="categoriesList"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -260,6 +283,7 @@
     <script src="google-auth.js"></script>
     <script src="google-sheets.js"></script>
     <script src="libraries.js"></script>
+    <script src="categories.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
