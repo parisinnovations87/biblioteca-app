@@ -33,11 +33,17 @@ const SHEETS_CONFIG = {
         'User_ID', 'Nome_Libreria', 'Data_Creazione'
     ],
     
-    // NUOVO: Configurazione foglio Categorie
     CATEGORIES_SHEET_NAME: 'Categorie',
     
     CATEGORIES_HEADERS: [
         'User_ID', 'Nome_Categoria', 'Data_Creazione'
+    ],
+    
+    // NUOVO: Configurazione foglio Parole Chiave
+    KEYWORDS_SHEET_NAME: 'Parole_Chiave',
+    
+    KEYWORDS_HEADERS: [
+        'User_ID', 'Parola_Chiave', 'Data_Creazione'
     ]
 };
 
@@ -49,9 +55,11 @@ const GOOGLE_APIS = {
     USERINFO: 'https://www.googleapis.com/oauth2/v2/userinfo',
     LIBRARIES_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}`,
     LIBRARIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.LIBRARIES_SHEET_NAME}:append`,
-    // NUOVO: URLs per foglio Categorie
     CATEGORIES_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.CATEGORIES_SHEET_NAME}`,
-    CATEGORIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.CATEGORIES_SHEET_NAME}:append`
+    CATEGORIES_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.CATEGORIES_SHEET_NAME}:append`,
+    // NUOVO: URLs per foglio Parole Chiave
+    KEYWORDS_READ: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.KEYWORDS_SHEET_NAME}`,
+    KEYWORDS_WRITE: `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFIG.SHEET_ID}/values/${SHEETS_CONFIG.KEYWORDS_SHEET_NAME}:append`
 };
 
 // Verifica se la configurazione è valida
@@ -82,8 +90,9 @@ if (DEV_MODE) {
         redirectUri: GOOGLE_CONFIG.REDIRECT_URI,
         isValid: isConfigurationValid(),
         librariesSheetName: SHEETS_CONFIG.LIBRARIES_SHEET_NAME,
-        categoriesSheetName: SHEETS_CONFIG.CATEGORIES_SHEET_NAME
+        categoriesSheetName: SHEETS_CONFIG.CATEGORIES_SHEET_NAME,
+        keywordsSheetName: SHEETS_CONFIG.KEYWORDS_SHEET_NAME
     });
     
-    console.log('🔍 URLs API:', GOOGLE_APIS);
+    console.log('📄 URLs API:', GOOGLE_APIS);
 }
