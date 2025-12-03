@@ -169,9 +169,12 @@ function showApp() {
 
     // Carica le librerie dell'utente
     loadUserLibraries();
-    
-    // NUOVO: Carica le categorie dell'utente
+
+    // Carica le categorie dell'utente
     loadUserCategories();
+
+    // NUOVO: Carica le parole chiave dell'utente
+    loadUserKeywords();
 }
 
 function hideApp() {
@@ -217,20 +220,23 @@ function showTab(tabName) {
     document.getElementById(tabName + 'Tab').classList.add('active');
     
     switch(tabName) {
-        case 'library':
-            displayBooks();
-            updateBookCount();
-            break;
-        case 'search':
-            updateSearchFilters();
-            break;
-        case 'libraries':
-            displayLibraries();
-            break;
-        case 'categories':  // NUOVO CASE
-            displayCategories();
-            break;
-    }
+    case 'library':
+        displayBooks();
+        updateBookCount();
+        break;
+    case 'search':
+        updateSearchFilters();
+        break;
+    case 'libraries':
+        displayLibraries();
+        break;
+    case 'categories':
+        displayCategories();
+        break;
+    case 'keywords':  // NUOVO CASE
+        displayKeywords();
+        break;
+}
 }
 
 // ========================================
@@ -1114,14 +1120,17 @@ function clearForm() {
         if (element) element.value = '';
     });
     
-    const selects = ['genre', 'condition'];
+    const selects = ['genre', 'condition', 'keywords'];
     selects.forEach(id => {
         const element = document.getElementById(id);
-        if (element) element.selectedIndex = 0;
+        if (element) element.value = '';
     });
 
-    // Reset checkboxes parole chiave
-    document.querySelectorAll('input[name="keywords"]').forEach(cb => cb.checked = false);
+    // Reset selezione parole chiave
+    const selectedKeywordsDiv = document.getElementById('selectedKeywords');
+    if (selectedKeywordsDiv) {
+        selectedKeywordsDiv.innerHTML = '';
+    }
     
     resetEditMode();
 }
@@ -1194,13 +1203,4 @@ function showConfigurationStatus() {
     }
 }
 
-function getSelectedKeywords() {
-    const checkboxes = document.querySelectorAll('input[name="keywords"]:checked');
-    return Array.from(checkboxes).map(cb => cb.value).join(', ');
-}
-
-function setSelectedKeywords(keywordsString) {
-    document.querySelectorAll('input[name="keywords"]').forEach(cb => {
-        cb.checked = keywordsString.includes(cb.value);
-    });
-}
+// Le funzioni getSelectedKeywords e setSelectedKeywords sono ora in keywords.js
