@@ -71,6 +71,7 @@
                 <button class="tab" onclick="showTab('search')">🔍 Cerca</button>
                 <button class="tab" onclick="showTab('libraries')">🛋️ Le Mie Librerie</button>
                 <button class="tab" onclick="showTab('categories')">📚 Categorie</button>
+                <button class="tab" onclick="showTab('keywords')">🔖 Parole Chiave</button>
             </div>
 
             <!-- Tab Aggiungi Libro -->
@@ -129,24 +130,13 @@
 
                     <div class="form-group">
                         <label for="keywords">Parole chiave</label>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px;">
-                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-                                <input type="checkbox" name="keywords" value="Giallo" style="width: auto; cursor: pointer;">
-                                Giallo
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-                                <input type="checkbox" name="keywords" value="Fantasy" style="width: auto; cursor: pointer;">
-                                Fantasy
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-                                <input type="checkbox" name="keywords" value="Romanzo rosa" style="width: auto; cursor: pointer;">
-                                Romanzo rosa
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-                                <input type="checkbox" name="keywords" value="Romanzo storico" style="width: auto; cursor: pointer;">
-                                Romanzo storico
-                            </label>
-                        </div>
+                        <select id="keywords" onchange="handleKeywordSelection()">
+                            <option value="">Nessuna parola chiave selezionata</option>
+                        </select>
+                        <div id="selectedKeywords" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; min-height: 40px;"></div>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">
+                            💡 Seleziona una o più parole chiave dal menu. Non trovi quella che cerchi? Aggiungila dalla sezione "Parole Chiave"
+                        </p>
                     </div>
 
                     <div class="form-group">
@@ -275,6 +265,33 @@
                     <div id="categoriesList"></div>
                 </div>
             </div>
+
+            <!-- Tab Parole Chiave -->
+            <div id="keywordsTab" class="tab-content">
+                <h2>🔖 Parole Chiave</h2>
+                <p style="color: #666; margin-bottom: 30px;">
+                    Configura le tue parole chiave personalizzate per classificare meglio i tuoi libri. 
+                    Quando aggiungi un libro, potrai selezionare una o più parole chiave.
+                </p>
+                
+                <div class="library-form">
+                    <h3>Aggiungi una nuova parola chiave</h3>
+                    <div style="display: flex; gap: 15px; align-items: flex-end;">
+                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                            <label for="keywordName">Parola Chiave</label>
+                            <input type="text" id="keywordName" placeholder="es. Giallo, Fantasy, Romanzo rosa, Avventura...">
+                        </div>
+                        <button class="add-btn" onclick="addKeyword()" style="width: auto; padding: 15px 30px; margin: 0;">
+                            ➕ Aggiungi
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 40px;">
+                    <h3>Le tue parole chiave</h3>
+                    <div id="keywordsList"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -284,6 +301,7 @@
     <script src="google-sheets.js"></script>
     <script src="libraries.js"></script>
     <script src="categories.js"></script>
+    <script src="keywords.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
